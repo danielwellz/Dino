@@ -1,0 +1,380 @@
+{
+  "brand": {
+    "full": "Dino Multimedia Project Management Platform",
+    "short": "Dino Platform",
+    "tagline": "Creative collaboration without boundaries"
+  },
+  "general": {
+    "search": "Search",
+    "logout": "Log out",
+    "profile": "Profile",
+    "location": "Tunis, TN",
+    "delete": "Delete",
+    "open": "Open",
+    "create": "Create",
+    "comingSoon": "Coming Soon"
+  },
+  "language": {
+    "english": "English",
+    "farsi": "فارسی",
+    "switch": "Switch language"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up"
+  },
+  "sidebar": {
+    "home": "Home",
+    "messages": "Messages",
+    "members": "Members",
+    "tasks": "Tasks",
+    "settings": "Settings",
+    "myProjects": "My Projects"
+  },
+  "dashboard": {
+    "activeProjects": "Active Projects",
+    "noProjects": "No projects found",
+    "activeTasks": "Active Tasks",
+    "noTasks": "No tasks found",
+    "errorLoadingProjects": "Unable to load projects right now.",
+    "errorLoadingTasks": "Unable to load tasks right now.",
+    "tasksLabel": "Tasks",
+    "runningTasks": "Running Tasks"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "screenshots": "Screenshots",
+      "howItWorks": "How It Works",
+      "github": "GitHub"
+    },
+    "hero": {
+      "title": "Visualize your multimedia projects with clarity",
+      "subtitle": "Transform complex production workflows into connected, collaborative journeys across every creative discipline.",
+      "ctaDemo": "Try Live Demo",
+      "ctaGithub": "View on GitHub"
+    },
+    "features": {
+      "title": "Features",
+      "subtitle": "Plan, coordinate, and deliver multimedia projects with connected views that adapt to every stage of production.",
+      "items": {
+        "graph": {
+          "title": "Interactive Dependency Graph",
+          "description": "Visualize scenes, assets, and approvals as a living network. Drag, zoom, and uncover critical relationships instantly."
+        },
+        "messaging": {
+          "title": "Real-Time Messaging",
+          "description": "Collaborate with creative, technical, and client teams using focused threads embedded in every project."
+        },
+        "sequencing": {
+          "title": "Automated Task Sequencing",
+          "description": "Let intelligent scheduling surface the optimal order of work, flagging bottlenecks before they slow production."
+        },
+        "gantt": {
+          "title": "Gantt View & Rescheduling",
+          "description": "Adjust shot lists and deliverables in an adaptive timeline that keeps dependencies and deadlines aligned."
+        },
+        "security": {
+          "title": "Secure Team Collaboration",
+          "description": "Control access with granular roles, approvals, and audit trails purpose-built for agencies and studios."
+        }
+      }
+    },
+    "screenshots": {
+      "title": "Visualize your workflow",
+      "subtitle": "Explore how Dino connects planning, production, and delivery in a single collaborative canvas.",
+      "items": {
+        "graph": {
+          "title": "Project Graph View",
+          "description": "See the full dependency map and identify critical paths instantly."
+        },
+        "kanban": {
+          "title": "Kanban Board View",
+          "description": "Track stage progress with customizable pipelines for every discipline."
+        },
+        "task": {
+          "title": "Task Detail Workspace",
+          "description": "Centralize requirements, dependencies, and feedback without losing context."
+        },
+        "messaging": {
+          "title": "Real-Time Messaging",
+          "description": "Connect distributed teams with persistent rooms for each project."
+        },
+        "reschedule": {
+          "title": "Adaptive Gantt",
+          "description": "Drag and drop timelines while Dino recalculates downstream impacts."
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "subtitle": "Launch in minutes, collaborate in real time, and keep every stakeholder aligned from pitch to delivery.",
+      "steps": {
+        "1": {
+          "title": "Create your project",
+          "description": "Stand up a new production, define goals, and import scenes, cues, or deliverables."
+        },
+        "2": {
+          "title": "Map dependencies",
+          "description": "Connect tasks, approvals, and asset pipelines to reflect how your teams actually work."
+        },
+        "3": {
+          "title": "Visualize & optimize",
+          "description": "Let smart visuals reveal the critical path, risk areas, and workload balance at a glance."
+        },
+        "4": {
+          "title": "Execute with confidence",
+          "description": "Manage reshoots, feedback cycles, and submissions while keeping everyone in sync."
+        }
+      }
+    },
+    "footer": {
+      "description": "Dino brings creative, technical, and client teams together with intuitive planning, production, and delivery tools.",
+      "linksTitle": "Links",
+      "repository": "GitHub Repository",
+      "liveDemo": "Live Demo",
+      "roadmap": "Roadmap",
+      "support": "Support",
+      "legal": {
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "contact": "Contact Us"
+      },
+      "copyright": "© 2025 Dino Platform. All rights reserved."
+    }
+  },
+  "projectWizard": {
+    "title": "Create New Project",
+    "roleLabels": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Collaborator",
+      "viewer": "Viewer",
+      "client": "Client"
+    },
+    "roleLabelsShort": {
+      "OWNER": "Owner",
+      "ADMIN": "Admin",
+      "MEMBER": "Collaborator",
+      "VIEWER": "Viewer",
+      "CLIENT": "Client"
+    },
+    "steps": {
+      "basics": {
+        "title": "Project Basics",
+        "subtitle": "Define the core details so your team knows what success looks like.",
+        "fields": {
+          "name": "Project Name",
+          "description": "Description",
+          "startDate": "Start Date",
+          "endDate": "Due Date",
+          "projectType": "Project Type",
+          "workflow": "Workflow Template",
+          "status": "Status"
+        },
+        "placeholders": {
+          "name": "e.g. Dino Studio Launch Campaign",
+          "description": "What problem are we solving and what does success look like?",
+          "projectType": "Select a project type",
+          "workflow": "Select a workflow template"
+        },
+        "statusOptions": {
+          "notStarted": "Not started",
+          "planning": "Planning",
+          "inProgress": "In progress",
+          "completed": "Completed"
+        }
+      },
+      "workflow": {
+        "title": "Workflow & Stages",
+        "subtitle": "Tailor the journey of your project so every stage has a clear owner.",
+        "table": {
+          "stage": "Stage (EN)",
+          "stageFa": "Stage (FA)",
+          "owner": "Owner Role",
+          "actions": "Actions"
+        },
+        "placeholders": {
+          "stageEn": "Stage name in English",
+          "stageFa": "Stage name in فارسی"
+        },
+        "addStage": "Add Stage",
+        "remove": "Remove stage"
+      },
+      "participants": {
+        "title": "Participants & Invitations",
+        "subtitle": "Bring collaborators and clients together with the right access from day one.",
+        "internalHeading": "Team collaborators",
+        "externalHeading": "Client or external invitations",
+        "selectUser": "Select teammate",
+        "selectRole": "Role",
+        "addInternal": "Add collaborator",
+        "addExternal": "Add invitee",
+        "remove": "Remove",
+        "sendInvites": "Send invitation emails immediately",
+        "fields": {
+          "email": "Email address"
+        },
+        "placeholders": {
+          "selectUser": "Choose a teammate",
+          "email": "client@example.com"
+        }
+      },
+      "summary": {
+        "title": "Review & Launch",
+        "subtitle": "Confirm the configuration and launch with confidence.",
+        "overviewTitle": "Configuration Summary",
+        "projectName": "Project name",
+        "projectType": "Project type",
+        "workflow": "Workflow",
+        "customWorkflow": "Custom workflow",
+        "stages": "Stages",
+        "participants": "Participants",
+        "invitations": "Pending invitations"
+      }
+    },
+    "aiCard": {
+      "badge": "Coming Soon",
+      "title": "AI Project Copilot",
+      "description": "Soon you’ll get automated brief extraction and smart task suggestions tailored to this project."
+    },
+    "actions": {
+      "next": "Next",
+      "back": "Back",
+      "launch": "Launch Project"
+    },
+    "notifications": {
+      "success": "Project created successfully!",
+      "error": "We couldn’t create the project. Please try again."
+    },
+    "empty": {
+      "noStages": "No stages defined yet. Add at least one stage to continue.",
+      "noParticipants": "Add collaborators or invitees to keep everyone aligned."
+    }
+  },
+  "roleLabelsShort": {
+    "OWNER": "Owner",
+    "ADMIN": "Admin",
+    "MEMBER": "Collaborator",
+    "VIEWER": "Viewer",
+    "CLIENT": "Client"
+  },
+  "chat": {
+    "sidebar": {
+      "title": "Inbox",
+      "newConversation": "Start a conversation",
+      "teams": "Team spaces",
+      "conversations": "Chats",
+      "noConversation": "No conversations yet",
+      "noTeam": "Select a team",
+      "unknownUser": "Unknown teammate",
+      "untitledGroup": "Group chat",
+      "emptyConversation": "No messages yet",
+      "attachmentOnly": "Attachment"
+    },
+    "header": {
+      "updatedAt": "Last activity:",
+      "justNow": "just now"
+    },
+    "pinned": {
+      "title": "Pinned message"
+    },
+    "message": {
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "status": {
+        "sent": "Sent",
+        "delivered": "Delivered",
+        "read": "Read"
+      }
+    },
+    "composer": {
+      "newConversation": "New conversation",
+      "direct": "Direct",
+      "group": "Group",
+      "selectPerson": "Choose a teammate",
+      "groupNamePlaceholder": "Group name (optional)",
+      "creating": "Creating…",
+      "start": "Create",
+      "addAttachment": "Add attachment",
+      "attachmentPrompt": "Paste a file URL",
+      "placeholder": "Write a message"
+    },
+    "info": {
+      "participants": "Participants",
+      "noParticipants": "No participants yet"
+    },
+    "ai": {
+      "badge": "Coming Soon",
+      "title": "AI chat insights",
+      "description": "Soon Dino will summarise threads and suggest follow-up actions automatically."
+    }
+  },
+  "assetsWorkspace": {
+    "title": "Smart File Library",
+    "projectSelect": "Project",
+    "folderTree": "Folders",
+    "newFolder": "New Folder",
+    "createFolder": "Create Folder",
+    "folderName": "Folder Name",
+    "visibility": "Visibility",
+    "description": "Description",
+    "assets": "Assets",
+    "upload": "Add Asset",
+    "name": "Asset Name",
+    "fileUrl": "File URL",
+    "previewUrl": "Preview URL",
+    "tags": "Tags (comma separated)",
+    "uploadCta": "Save Asset",
+    "emptyState": "No assets yet. Upload files to kick-start collaboration.",
+    "aiBanner": "AI auto-tagging soon highlights themes, talent, and compliance risks automatically.",
+    "visibilityOptions": {
+      "PRIVATE": "Private",
+      "PROJECT": "Project",
+      "TEAM": "Team"
+    }
+  },
+  "storycraft": {
+    "title": "Storycraft Studio",
+    "tabs": {
+      "moodboard": "Moodboard",
+      "storyboard": "Storyboard",
+      "scenario": "Scenario"
+    },
+    "moodboard": {
+      "empty": "No moodboards yet",
+      "new": "Create Moodboard",
+      "title": "Title",
+      "description": "Description",
+      "create": "Create",
+      "addItem": "Add Item",
+      "itemUrl": "Embed or media URL",
+      "note": "Note",
+      "ai": "AI palette coming soon to suggest references and palettes."
+    },
+    "storyboard": {
+      "empty": "No storyboards yet",
+      "new": "Create Storyboard",
+      "title": "Title",
+      "description": "Description",
+      "create": "Create",
+      "addFrame": "Add Frame",
+      "frameTitle": "Frame title",
+      "frameDescription": "Description",
+      "frameImage": "Image URL",
+      "ai": "AI shot breakdowns coming soon."
+    },
+    "scenario": {
+      "empty": "No scenarios yet",
+      "new": "Create Scenario",
+      "title": "Title",
+      "summary": "Summary",
+      "create": "Create",
+      "addBlock": "Add Block",
+      "blockType": "Block type",
+      "heading": "Heading",
+      "body": "Body",
+      "ai": "AI script assistant coming soon."
+    }
+  }
+}

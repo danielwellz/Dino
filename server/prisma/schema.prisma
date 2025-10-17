@@ -1,0 +1,609 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ConversationType {
+  TEAM
+  GROUP
+  DIRECT
+}
+
+enum ConversationRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum ParticipantStatus {
+  INVITED
+  ACCEPTED
+  DECLINED
+}
+
+enum TeamMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum AssetVisibility {
+  PRIVATE
+  PROJECT
+  TEAM
+}
+
+enum MoodboardItemType {
+  IMAGE
+  VIDEO
+  NOTE
+  EMBED
+  COLOR
+}
+
+enum ScenarioBlockType {
+  HEADING
+  ACTION
+  DIALOGUE
+  NOTE
+}
+
+model User {
+  userId                    Int                       @id @default(autoincrement())
+  email                     String                    @unique
+  username                  String                    @unique
+  password                  String?                   @db.Text
+  googleId                  String?
+  profilePictureUrl         String?
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  teams                     TeamMember[]
+  attachments               Attachment[]
+  comments                  Comment[]
+  assignedTasks             Task[]                    @relation("TaskAssignee")
+  authoredTasks             Task[]                    @relation("TaskAuthor")
+  taskAssignments           TaskAssignment[]
+  messages                  Message[]
+  createdConversations      Conversation[]            @relation("ConversationCreatedBy")
+  conversationParticipants  ConversationParticipant[]
+  projectInvitations        ProjectInvitation[]       @relation("InvitationInviter")
+  messageReceipts           MessageReceipt[]
+  pinnedMessages            Message[]                 @relation("MessagePinnedBy")
+  scenarioDocumentsCreated  ScenarioDocument[]        @relation("ScenarioCreatedBy")
+  scenarioDocumentsUpdated  ScenarioDocument[]        @relation("ScenarioUpdatedBy")
+  assetFoldersCreated       AssetFolder[]             @relation("AssetFolderCreatedBy")
+  assetsUploaded            Asset[]                   @relation("AssetUploadedBy")
+  moodboardsCreated         Moodboard[]               @relation("MoodboardCreatedBy")
+  moodboardItemsCreated     MoodboardItem[]           @relation("MoodboardItemCreatedBy")
+  storyboardsCreated        Storyboard[]              @relation("StoryboardCreatedBy")
+  projectParticipations     ProjectParticipant[]      @relation("ProjectParticipantUser")
+
+  timeOff                   TimeOff[]
+  workingHours              UserWorkingHours?
+}
+
+model Team {
+  id             Int             @id @default(autoincrement())
+  teamName       String
+  members        TeamMember[]
+  projects       Project[]
+  assetFolders   AssetFolder[]   @relation("TeamAssetFolders")
+  assetTags      AssetTag[]      @relation("TeamAssetTags")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  Message        Message[]
+  conversations  Conversation[]
+}
+
+model TeamMember {
+  id        Int        @id @default(autoincrement())
+  userId    Int
+  teamId    Int
+  role      TeamMemberRole @default(MEMBER)
+  joinedAt  DateTime   @default(now())
+
+  user      User       @relation(fields: [userId], references: [userId])
+  team      Team       @relation(fields: [teamId], references: [id])
+  messages  Message[]  @relation("TeamMemberMessages")
+
+  @@unique([userId, teamId])
+}
+
+model Project {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  description        String?
+  startDate          DateTime?
+  endDate            DateTime?
+  status             String              @default("PLANNING")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  teamId             Int
+  team               Team                @relation(fields: [teamId], references: [id])
+  tasks              Task[]
+  bestCaseDuration   Int?
+  worstCaseDuration  Int?
+  expectedDuration   Float?
+  projectTypeId      Int?
+  workflowTemplateId Int?
+  onboardingStatus   String              @default("DRAFT")
+  onboardingMetadata Json?
+  stages             ProjectStage[]
+  participants       ProjectParticipant[]
+  invitations        ProjectInvitation[]
+  workflowTemplate   WorkflowTemplate?   @relation(fields: [workflowTemplateId], references: [id], onDelete: SetNull)
+  projectType        ProjectType?        @relation(fields: [projectTypeId], references: [id], onDelete: SetNull)
+  assetFolders       AssetFolder[]
+  assets             Asset[]
+  moodboards         Moodboard[]
+  storyboards        Storyboard[]
+  scenarioDocuments  ScenarioDocument[]
+}
+
+model Task {
+  id              Int              @id @default(autoincrement())
+  title           String
+  description     String?
+  status          String?
+  priority        String?
+  tags            String?
+  startDate       DateTime?
+  dueDate         DateTime?
+  points          Int?
+  projectId       Int
+  authorUserId    Int
+  assignedUserId  Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  attachments     Attachment[]
+  comments        Comment[]
+  assignee        User?            @relation("TaskAssignee", fields: [assignedUserId], references: [userId], onDelete: SetNull)
+  author          User             @relation("TaskAuthor", fields: [authorUserId], references: [userId], onDelete: Cascade)
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  taskAssignments TaskAssignment[]
+  dependencies    TaskDependency[] @relation("DependentTask")
+  dependents      TaskDependency[] @relation("PrerequisiteTask")
+  assetReferences AssetReference[] @relation("TaskAssetReferences")
+  storyboardFrames StoryboardFrame[] @relation("TaskStoryboardFrames")
+  scenarioBlocks  ScenarioBlock[]   @relation("TaskScenarioBlocks")
+  degree          Int?
+  duration        Int?
+
+  earliestStart   Int?             @default(0)
+  earliestFinish  Int?             @default(0)
+  latestStart     Int?             @default(0)
+  latestFinish    Int?             @default(0)
+  slack           Int?             @default(0)
+  isCriticalPath  Boolean?         @default(false)
+}
+
+model TaskDependency {
+  id                 Int      @id @default(autoincrement())
+  dependentTaskId    Int
+  prerequisiteTaskId Int
+  createdAt          DateTime @default(now())
+  dependentTask      Task     @relation("DependentTask", fields: [dependentTaskId], references: [id], onDelete: Cascade)
+  prerequisiteTask   Task     @relation("PrerequisiteTask", fields: [prerequisiteTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([dependentTaskId, prerequisiteTaskId])
+}
+
+model TaskAssignment {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+model Attachment {
+  id           Int      @id @default(autoincrement())
+  fileURL      String
+  fileName     String?
+  taskId       Int
+  uploadedById Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [userId], onDelete: Cascade)
+}
+
+model Message {
+  id             Int               @id @default(autoincrement())
+  text           String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  status         MessageStatus     @default(SENT)
+  type           ConversationType  @default(TEAM)
+  teamId         Int?
+  conversationId Int?
+  userId         Int
+  teamMemberId   Int?
+  pinnedAt       DateTime?
+  pinnedById     Int?
+  metadata       Json?
+  aiSynopsis     String?
+  team           Team?             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author         TeamMember?       @relation("TeamMemberMessages", fields: [teamMemberId], references: [id], onDelete: SetNull)
+  user           User              @relation(fields: [userId], references: [userId])
+  conversation   Conversation?     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  pinnedBy       User?             @relation("MessagePinnedBy", fields: [pinnedById], references: [userId], onDelete: SetNull)
+  attachments    MessageAttachment[]
+  receipts       MessageReceipt[]
+  assetLinks     AssetReference[]
+
+  @@index([teamId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model MessageAttachment {
+  id           Int      @id @default(autoincrement())
+  messageId    Int
+  fileURL      String
+  thumbnailURL String?
+  fileName     String?
+  fileType     String?
+  fileSize     Int?
+  createdAt    DateTime @default(now())
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model MessageReceipt {
+  id          Int           @id @default(autoincrement())
+  messageId   Int
+  userId      Int
+  status      MessageStatus
+  readAt      DateTime?
+  deliveredAt DateTime?
+  message     Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model Conversation {
+  id            Int                     @id @default(autoincrement())
+  type          ConversationType
+  title         String?
+  titleFa       String?
+  teamId        Int?
+  createdById   Int
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  aiContext     Json?
+  team          Team?                   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  createdBy     User                    @relation("ConversationCreatedBy", fields: [createdById], references: [userId])
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@index([teamId])
+}
+
+model ConversationParticipant {
+  id             Int                @id @default(autoincrement())
+  conversationId Int
+  userId         Int
+  role           ConversationRole   @default(MEMBER)
+  lastReadAt     DateTime?
+  isMuted        Boolean            @default(false)
+  conversation   Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model ProjectType {
+  id            Int               @id @default(autoincrement())
+  key           String            @unique
+  nameEn        String
+  nameFa        String
+  descriptionEn String?
+  descriptionFa String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  workflows     WorkflowTemplate[]
+  projects      Project[]
+}
+
+model WorkflowTemplate {
+  id            Int            @id @default(autoincrement())
+  key           String         @unique
+  nameEn        String
+  nameFa        String
+  descriptionEn String?
+  descriptionFa String?
+  projectTypeId Int?
+  stages        Json
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  projectType   ProjectType?   @relation(fields: [projectTypeId], references: [id], onDelete: SetNull)
+  projects      Project[]
+}
+
+model ProjectStage {
+  id        Int             @id @default(autoincrement())
+  projectId Int
+  titleEn   String
+  titleFa   String
+  order     Int
+  ownerRole TeamMemberRole?
+  metadata  Json?
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, order])
+}
+
+model ProjectParticipant {
+  id          Int                @id @default(autoincrement())
+  projectId   Int
+  userId      Int?
+  email       String?
+  role        TeamMemberRole
+  status      ParticipantStatus  @default(INVITED)
+  inviteToken String?            @unique
+  invitedAt   DateTime           @default(now())
+  respondedAt DateTime?
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User?              @relation("ProjectParticipantUser", fields: [userId], references: [userId], onDelete: SetNull)
+
+  @@index([inviteToken])
+}
+
+model ProjectInvitation {
+  id          Int               @id @default(autoincrement())
+  projectId   Int
+  email       String
+  role        TeamMemberRole
+  token       String            @unique
+  status      ParticipantStatus @default(INVITED)
+  expiresAt   DateTime
+  createdAt   DateTime          @default(now())
+  invitedById Int?
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invitedBy   User?             @relation("InvitationInviter", fields: [invitedById], references: [userId], onDelete: SetNull)
+}
+
+model AssetFolder {
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String?
+  parentId      Int?
+  projectId     Int?
+  teamId        Int
+  createdById   Int
+  visibility    AssetVisibility @default(TEAM)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  project       Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  team          Team            @relation("TeamAssetFolders", fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy     User            @relation("AssetFolderCreatedBy", fields: [createdById], references: [userId], onDelete: Cascade)
+  parent        AssetFolder?    @relation("AssetFolderParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children      AssetFolder[]   @relation("AssetFolderParent")
+  assets        Asset[]
+  rolePolicies  AssetFolderRolePolicy[]
+
+  @@index([teamId])
+  @@index([projectId])
+}
+
+model AssetFolderRolePolicy {
+  id        Int            @id @default(autoincrement())
+  folderId  Int
+  role      TeamMemberRole
+  canUpload Boolean        @default(false)
+  canEdit   Boolean        @default(false)
+  canDelete Boolean        @default(false)
+  folder    AssetFolder    @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@unique([folderId, role])
+}
+
+model Asset {
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String?
+  fileURL       String
+  previewURL    String?
+  mimeType      String?
+  size          Int?
+  folderId      Int?
+  projectId     Int?
+  uploadedById  Int
+  autoTags      Json?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  folder        AssetFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  project       Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  uploadedBy    User            @relation("AssetUploadedBy", fields: [uploadedById], references: [userId], onDelete: Cascade)
+  tags          AssetTagAssignment[]
+  references    AssetReference[]
+
+  @@index([folderId])
+  @@index([projectId])
+}
+
+model AssetTag {
+  id        Int       @id @default(autoincrement())
+  key       String    @unique
+  labelEn   String
+  labelFa   String
+  teamId    Int
+  createdAt DateTime  @default(now())
+  team      Team      @relation("TeamAssetTags", fields: [teamId], references: [id], onDelete: Cascade)
+  assets    AssetTagAssignment[]
+
+  @@index([teamId])
+}
+
+model AssetTagAssignment {
+  id      Int      @id @default(autoincrement())
+  assetId Int
+  tagId   Int
+  asset   Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  tag     AssetTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, tagId])
+}
+
+model AssetReference {
+  id        Int      @id @default(autoincrement())
+  assetId   Int
+  messageId Int?
+  taskId    Int?
+  createdAt DateTime @default(now())
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  task      Task?    @relation("TaskAssetReferences", fields: [taskId], references: [id], onDelete: SetNull)
+}
+
+model Moodboard {
+  id          Int             @id @default(autoincrement())
+  title       String
+  description String?
+  projectId   Int
+  createdById Int
+  isShared    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User            @relation("MoodboardCreatedBy", fields: [createdById], references: [userId], onDelete: Cascade)
+  items       MoodboardItem[]
+
+  @@index([projectId])
+}
+
+model MoodboardItem {
+  id           Int               @id @default(autoincrement())
+  moodboardId  Int
+  type         MoodboardItemType
+  contentURL   String?
+  thumbnailURL String?
+  note         String?
+  positionX    Float             @default(0)
+  positionY    Float             @default(0)
+  width        Float             @default(160)
+  height       Float             @default(160)
+  metadata     Json?
+  createdById  Int
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  moodboard    Moodboard         @relation(fields: [moodboardId], references: [id], onDelete: Cascade)
+  createdBy    User              @relation("MoodboardItemCreatedBy", fields: [createdById], references: [userId], onDelete: Cascade)
+}
+
+model Storyboard {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?
+  projectId   Int
+  createdById Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User       @relation("StoryboardCreatedBy", fields: [createdById], references: [userId], onDelete: Cascade)
+  frames      StoryboardFrame[]
+
+  @@index([projectId])
+}
+
+model StoryboardFrame {
+  id           Int      @id @default(autoincrement())
+  storyboardId Int
+  order        Int
+  title        String?
+  description  String?
+  imageURL     String?
+  duration     Int?
+  taskId       Int?
+  metadata     Json?
+  storyboard   Storyboard @relation(fields: [storyboardId], references: [id], onDelete: Cascade)
+  task         Task?      @relation("TaskStoryboardFrames", fields: [taskId], references: [id], onDelete: SetNull)
+  scenarioLinks ScenarioBlock[] @relation("StoryboardFrameScenarioBlocks")
+
+  @@unique([storyboardId, order])
+}
+
+model ScenarioDocument {
+  id          Int       @id @default(autoincrement())
+  projectId   Int
+  title       String
+  summary     String?
+  content     Json?
+  status      String     @default("DRAFT")
+  createdById Int
+  updatedById Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User       @relation("ScenarioCreatedBy", fields: [createdById], references: [userId], onDelete: Cascade)
+  updatedBy   User?      @relation("ScenarioUpdatedBy", fields: [updatedById], references: [userId], onDelete: SetNull)
+  blocks      ScenarioBlock[]
+
+  @@index([projectId])
+}
+
+model ScenarioBlock {
+  id            Int               @id @default(autoincrement())
+  scenarioId    Int
+  order         Int
+  type          ScenarioBlockType
+  heading       String?
+  body          String?
+  metadata      Json?
+  linkedTaskId  Int?
+  linkedFrameId Int?
+  scenario      ScenarioDocument  @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  linkedTask    Task?             @relation("TaskScenarioBlocks", fields: [linkedTaskId], references: [id], onDelete: SetNull)
+  linkedFrame   StoryboardFrame?  @relation("StoryboardFrameScenarioBlocks", fields: [linkedFrameId], references: [id], onDelete: SetNull)
+
+  @@unique([scenarioId, order])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  taskId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+}
+
+/// Represents the "weekly calendar" for a user:
+/// which days they normally work, and what hours on those days.
+model UserWorkingHours {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  weeklyHours Json
+  user        User     @relation(fields: [userId], references: [userId])
+  updatedAt   DateTime @updatedAt
+}
+
+/// Represents a contiguous block of time the user is NOT available
+/// (vacation, doctor appointment, training, etc.).
+model TimeOff {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  startDate DateTime
+  endDate   DateTime
+  type      String
+  note      String?
+
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
