@@ -4,7 +4,7 @@
 - **Frontend**: Next.js App Router with Tailwind + MUI, RTK Query/Redux Persist, bilingual layout (`client/src/app/layout.tsx`, `client/src/app/dashboard/page.tsx`, `client/src/app/projects/[id]/page.tsx`).
 - **Backend**: Express + Prisma + Socket.IO (`server/src/index.ts`, `server/src/routes`, `server/src/sockets`), Postgres schema covering projects, tasks, conversations, assets, schedules, and creative artifacts.
 - **Collaboration**: Team-wide chat, project invitations, shared workspaces (Assets, Moodboard, Storyboard, Scenario) with real-time presence scaffolding.
-- **Branding & Localization**: Dino bilingual identity assets available, locale files stored under `client/src/locales`.
+- **Branding & Localization**: Dyno bilingual identity assets available, locale files stored under `client/src/locales`.
 
 ## Guiding Principles
 1. **Creative Operations First** – Prioritize flows that unblock multimedia teams (briefing, scheduling, reviews).
@@ -14,7 +14,7 @@
 
 ## Phase 1 – Foundation Hardening (0–2 months)
 - **Brand & Navigation**
-  - Roll out Dino branding, favicon, and typography tokens across client & email templates.
+  - Roll out Dyno branding, favicon, and typography tokens across client & email templates.
   - Restructure navigation with module-first IA and persistent language switcher.
 - **Onboarding & Projects**
   - Expand project creation form (type, workflow template, stage definitions, participant roster).

@@ -1,6 +1,6 @@
-# Dino Multimedia Project Management Platform – Usage Guide
+# Dyno Multimedia Project Management Platform – Usage Guide
 
-This guide introduces the core areas of the Dino platform and the workflows currently available in the Next.js (frontend) client.
+This guide introduces the core areas of the Dyno platform and the workflows currently available in the Next.js (frontend) client.
 
 ## Access & Session Flow
 - Sign in or create an account through the authentication screens (`client/src/app/authentication/page.tsx`). Sessions are persisted with HTTP-only cookies and Redux Persist.

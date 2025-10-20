@@ -1,6 +1,6 @@
 # Operations & Maintenance Guide
 
-This document explains how to run, monitor, and maintain the Dino platform across the Next.js client and Express/Prisma API server.
+This document explains how to run, monitor, and maintain the Dyno platform across the Next.js client and Express/Prisma API server.
 
 ## 1. Runtime Options
 - **Docker (recommended):**

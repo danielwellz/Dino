@@ -21,7 +21,7 @@ interface LogoProps
 
 const Logo = ({
   size = "md",
-  alt = "پلتفرم مدیریت پروژه‌های چندرسانه‌ای داینو | Dino Multimedia Project Management Platform",
+  alt = "پلتفرم مدیریت پروژه‌های چندرسانه‌ای داینو | Dyno Multimedia Project Management Platform",
   ...rest
 }: LogoProps) => {
   const { width, height } = sizeMap[size];

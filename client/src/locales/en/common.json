@@ -1,7 +1,7 @@
 {
   "brand": {
-    "full": "Dino Multimedia Project Management Platform",
-    "short": "Dino Platform",
+    "full": "Dyno Multimedia Project Management Platform",
+    "short": "Dyno Platform",
     "tagline": "Creative collaboration without boundaries"
   },
   "general": {
@@ -82,7 +82,7 @@
     },
     "screenshots": {
       "title": "Visualize your workflow",
-      "subtitle": "Explore how Dino connects planning, production, and delivery in a single collaborative canvas.",
+      "subtitle": "Explore how Dyno connects planning, production, and delivery in a single collaborative canvas.",
       "items": {
         "graph": {
           "title": "Project Graph View",
@@ -102,7 +102,7 @@
         },
         "reschedule": {
           "title": "Adaptive Gantt",
-          "description": "Drag and drop timelines while Dino recalculates downstream impacts."
+          "description": "Drag and drop timelines while Dyno recalculates downstream impacts."
         }
       }
     },
@@ -129,7 +129,7 @@
       }
     },
     "footer": {
-      "description": "Dino brings creative, technical, and client teams together with intuitive planning, production, and delivery tools.",
+      "description": "Dyno brings creative, technical, and client teams together with intuitive planning, production, and delivery tools.",
       "linksTitle": "Links",
       "repository": "GitHub Repository",
       "liveDemo": "Live Demo",
@@ -140,7 +140,7 @@
         "terms": "Terms of Service",
         "contact": "Contact Us"
       },
-      "copyright": "© 2025 Dino Platform. All rights reserved."
+      "copyright": "© 2025 Dyno Platform. All rights reserved."
     }
   },
   "projectWizard": {
@@ -173,7 +173,7 @@
           "status": "Status"
         },
         "placeholders": {
-          "name": "e.g. Dino Studio Launch Campaign",
+          "name": "e.g. Dyno Studio Launch Campaign",
           "description": "What problem are we solving and what does success look like?",
           "projectType": "Select a project type",
           "workflow": "Select a workflow template"
@@ -307,7 +307,7 @@
     "ai": {
       "badge": "Coming Soon",
       "title": "AI chat insights",
-      "description": "Soon Dino will summarise threads and suggest follow-up actions automatically."
+      "description": "Soon Dyno will summarise threads and suggest follow-up actions automatically."
     }
   },
   "assetsWorkspace": {

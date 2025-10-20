@@ -30,7 +30,7 @@ async function getMessages(locale: Locale) {
 }
 
 export const metadata: Metadata = {
-  title: "پلتفرم مدیریت پروژه‌های چندرسانه‌ای داینو | Dino Multimedia Project Management Platform",
+  title: "پلتفرم مدیریت پروژه‌های چندرسانه‌ای داینو | Dyno Multimedia Project Management Platform",
   description: "Bilingual multimedia project management experience for creative and production teams.",
   icons: {
     icon: "/icon.png",

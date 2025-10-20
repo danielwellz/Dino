@@ -1,12 +1,12 @@
-# Dino Multimedia Project Management Platform
+# Dyno Multimedia Project Management Platform
 
-Modern creative teams need a shared operating system for projects, communication, and assets. Dino delivers that with an end‑to‑end workspace covering planning, production, and review. This repository contains both the Next.js front end and the Express/Prisma API that power the platform.
+Modern creative teams need a shared operating system for projects, communication, and assets. Dyno delivers that with an end‑to‑end workspace covering planning, production, and review. This repository contains both the Next.js front end and the Express/Prisma API that power the platform.
 
 ---
 
 ## Repository & Project Links
 
-- Source: [`https://github.com/danielwellz/Dino`](https://github.com/danielwellz/Dino)
+- Source: [`https://github.com/danielwellz/Dyno`](https://github.com/danielwellz/Dyno)
 - Live preview (if configured): update with your deployment URL.
 - Product documentation: see `/docs`.
 
@@ -37,8 +37,8 @@ Modern creative teams need a shared operating system for projects, communication
 ## Quick Start (Docker)
 
 ```bash
-git clone https://github.com/danielwellz/Dino.git
-cd Dino
+git clone https://github.com/danielwellz/Dyno.git
+cd Dyno
 cp client/.env.docker.example client/.env.docker
 cp server/.env.docker.example server/.env.docker
 docker compose up --build
@@ -60,8 +60,8 @@ Stop the stack with `docker compose down`.
 
 1. **Clone & Install**
    ```bash
-   git clone https://github.com/danielwellz/Dino.git
-   cd Dino
+   git clone https://github.com/danielwellz/Dyno.git
+   cd Dyno
    npm install --prefix client --legacy-peer-deps
    npm install --prefix server
    ```
@@ -74,7 +74,7 @@ Stop the stack with `docker compose down`.
 
    # server/.env
    PORT=8000
-   DATABASE_URL=postgresql://postgres:<password>@localhost:5432/dino?schema=public
+   DATABASE_URL=postgresql://postgres:<password>@localhost:5432/dyno?schema=public
    JWT_ACCESS_TOKEN_SECRET=replace-me
    JWT_REFRESH_TOKEN_SECRET=replace-me
    STATUS=development
@@ -114,7 +114,7 @@ Stop the stack with `docker compose down`.
 ## Project Structure
 
 ```
-Dino/
+Dyno/
 ├─ client/               # Next.js app
 │  ├─ public/
 │  ├─ src/
@@ -162,7 +162,7 @@ Dino/
 1. Fork or branch from `main`.
 2. Keep Prisma schema changes accompanied by a migration.
 3. Run client + server builds before opening a PR.
-4. Submit a pull request to `https://github.com/danielwellz/Dino`.
+4. Submit a pull request to `https://github.com/danielwellz/Dyno`.
 
 > Note: GitHub previously attributed commits to another author. Subsequent pushes use the `danielwellz` account; no additional contributors are listed in this repository.
 
@@ -177,6 +177,6 @@ License terms are not yet published. Until finalized, please request permission 
 ## Acknowledgements
 
 - Graph-based task planning inspired by university research into topological sorting.
-- UI assets and branding draw from the Dino Multimedia identity contained in `/client/public`.
+- UI assets and branding draw from the Dyno Multimedia identity contained in `/client/public`.
 
 For questions or access requests, open an issue on the GitHub repo or contact `danielwellz`. Happy building!
