@@ -21,6 +21,8 @@ import {
   Sparkles,
   StickyNote,
 } from "lucide-react";
+import { uploadFile } from "@/lib/upload";
+import { useAppSelector } from "@/app/redux";
 
 type MoodboardWorkspaceProps = {
   projectId: string;
@@ -50,7 +52,9 @@ const defaultBoardMeta = (title: string) => ({
 const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const numericProjectId = Number(projectId);
+  const authToken = useAppSelector((state) => state.auth.token);
 
   const {
     data,
@@ -107,6 +111,11 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
     setFeedback(message);
   };
 
+  const resolveDefaultPosition = (index: number) => ({
+    x: 96 + index * 48,
+    y: 96 + index * 40,
+  });
+
   const handleCreateBoard = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!boardTitle.trim()) {
@@ -143,6 +152,52 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
     };
   };
 
+  const uploadAndAddImage = async (file: File, position?: { x: number; y: number }) => {
+    if (!selectedBoard) {
+      reportFeedback("Select a moodboard to add items.");
+      return;
+    }
+    try {
+      const uploaded = await uploadFile(file, authToken);
+      const fallback = position ?? resolveDefaultPosition(items.length);
+      await addMoodboardItem({
+        moodboardId: selectedBoard.id,
+        type: MoodboardItemType.IMAGE,
+        contentURL: uploaded.url,
+        thumbnailURL: uploaded.thumbnailURL ?? uploaded.url,
+        positionX: fallback.x,
+        positionY: fallback.y,
+        width: 280,
+        height: 280,
+        metadata: {
+          fileName: uploaded.fileName,
+          fileSize: uploaded.fileSize ?? undefined,
+          relativeUrl: uploaded.relativeUrl,
+          fileType: uploaded.fileType ?? file.type ?? undefined,
+          source: "upload",
+        },
+      }).unwrap();
+      reportFeedback("Image added to the moodboard.");
+    } catch (error: any) {
+      reportFeedback(error?.data?.message ?? "Could not add image.");
+    }
+  };
+
+  const handleSelectFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files || event.target.files.length === 0) {
+      return;
+    }
+    const files = Array.from(event.target.files);
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        reportFeedback("Only image files can be uploaded.");
+        continue;
+      }
+      await uploadAndAddImage(file);
+    }
+    event.target.value = "";
+  };
+
   const handleDropFile = async (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -150,39 +205,40 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
       reportFeedback("Select a moodboard to add items.");
       return;
     }
-    const file = event.dataTransfer.files?.[0];
-    if (!file) {
-      const url = event.dataTransfer.getData("text/uri-list");
-      if (url) {
-        await handleAddEmbed(url);
+    const position = resolveCanvasPosition(event);
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index];
+        if (!file.type.startsWith("image/")) {
+          reportFeedback("Only image files can be dropped on the canvas.");
+          continue;
+        }
+        await uploadAndAddImage(file, index === 0 ? position : undefined);
       }
       return;
     }
-    if (!file.type.startsWith("image/")) {
-      reportFeedback("Only image files can be dropped on the canvas.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const preview = reader.result as string;
-      const position = resolveCanvasPosition(event);
+    const url = event.dataTransfer.getData("text/uri-list");
+    if (url) {
       try {
+        const fallback = resolveDefaultPosition(items.length);
         await addMoodboardItem({
           moodboardId: selectedBoard.id,
           type: MoodboardItemType.IMAGE,
-          contentURL: preview,
-          thumbnailURL: preview,
-          positionX: position.x,
-          positionY: position.y,
-          width: 220,
-          height: 220,
-        }).unwrap();
-        reportFeedback("Image added to the moodboard.");
+          contentURL: url,
+          thumbnailURL: url,
+        positionX: position?.x ?? fallback.x,
+        positionY: position?.y ?? fallback.y,
+        width: 280,
+        height: 280,
+        metadata: { source: "external-url" },
+      }).unwrap();
+      reportFeedback("Image added to the moodboard.");
       } catch (error: any) {
         reportFeedback(error?.data?.message ?? "Could not add image.");
       }
-    };
-    reader.readAsDataURL(file);
+      return;
+    }
   };
 
   const handleAddNote = async () => {
@@ -191,14 +247,15 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
       return;
     }
     try {
+      const fallback = resolveDefaultPosition(items.length);
       await addMoodboardItem({
         moodboardId: selectedBoard.id,
         type: MoodboardItemType.NOTE,
         note: noteText.trim(),
-        positionX: 64 + items.length * 24,
-        positionY: 64 + items.length * 18,
-        width: 220,
-        height: 180,
+        positionX: fallback.x,
+        positionY: fallback.y,
+        width: 260,
+        height: 220,
         metadata: {
           sentiment: "aiAssistantIncoming",
         },
@@ -216,13 +273,17 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
       return;
     }
     try {
+      const fallback = resolveDefaultPosition(items.length);
       await addMoodboardItem({
         moodboardId: selectedBoard.id,
         type: MoodboardItemType.IMAGE,
         contentURL: imageUrl.trim(),
         thumbnailURL: imageUrl.trim(),
-        positionX: 84 + items.length * 16,
-        positionY: 84 + items.length * 20,
+        positionX: fallback.x,
+        positionY: fallback.y,
+        width: 280,
+        height: 280,
+        metadata: { source: "external-url" },
       }).unwrap();
       setImageUrl("");
       reportFeedback("Image reference stored.");
@@ -245,8 +306,8 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
         moodboardId: selectedBoard.id,
         type: MoodboardItemType.EMBED,
         contentURL: url.trim(),
-        positionX: 96 + items.length * 12,
-        positionY: 96 + items.length * 12,
+        positionX: 120 + items.length * 20,
+        positionY: 120 + items.length * 20,
         metadata: {
           provider: url.includes("figma")
             ? "figma"
@@ -459,8 +520,16 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
         </div>
       </form>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
         <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleSelectFiles}
+          />
           <h3 className="text-sm font-semibold text-slate-800">
             Boards in project
           </h3>
@@ -530,6 +599,14 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
             >
               Add image
             </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Upload image
+            </button>
+            <p className="text-xs text-slate-500">JPG, PNG up to 25&nbsp;MB.</p>
           </div>
           <div className="mt-6 space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -580,7 +657,7 @@ const MoodboardWorkspace = ({ projectId }: MoodboardWorkspaceProps) => {
             ref={canvasRef}
             onDragOver={(event) => event.preventDefault()}
             onDrop={handleDropFile}
-            className="relative min-h-[420px] rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4"
+            className="relative min-h-[560px] rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6"
           >
             {selectedBoard ? (
               <>

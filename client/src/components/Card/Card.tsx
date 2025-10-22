@@ -4,13 +4,16 @@ import { Avatar, AvatarGroup } from '@mui/material';
 import { format } from 'date-fns';
 import { Clock } from 'lucide-react';
 import React from 'react'
+import { useLocale } from "next-intl";
+import { getLocalizedAvatarPlaceholder } from "@/lib/avatar";
 
 type Props = {
     project: Project
 }
 
 export default function Card({project}: Props) {
-
+    const locale = useLocale();
+    const placeholderAvatar = getLocalizedAvatarPlaceholder(locale);
     const endDate = project?.endDate ? new Date(project?.endDate) : new Date();
 
   return (
@@ -25,9 +28,9 @@ export default function Card({project}: Props) {
       <div className='flex justify-center gap-7 items-center w-full'>
         <div>
           <AvatarGroup max={10} sx={{width: 20, height: 20}} >
-            <Avatar src={""} sx={{width: 20, height: 20}} />
-            <Avatar src={""} sx={{width: 20, height: 20}} />
-            <Avatar src={""} sx={{width: 20, height: 20}} />
+            <Avatar src={placeholderAvatar} sx={{width: 20, height: 20}} />
+            <Avatar src={placeholderAvatar} sx={{width: 20, height: 20}} />
+            <Avatar src={placeholderAvatar} sx={{width: 20, height: 20}} />
           </AvatarGroup>
         </div>
 

@@ -20,10 +20,14 @@ import AssetWorkspace from "./AssetWorkspace";
 import MoodboardWorkspace from "./MoodboardWorkspace";
 import StoryboardWorkspace from "./StoryboardWorkspace";
 import ScenarioWorkspace from "./ScenarioWorkspace";
+import { useLocale } from "next-intl";
+import { getLocalizedAvatarPlaceholder } from "@/lib/avatar";
 
 
 const ProjectPage = () => {
   const { id } = useParams<{ id: string }>();
+  const locale = useLocale();
+  const placeholderAvatar = getLocalizedAvatarPlaceholder(locale);
 
   const { data: project, isLoading, isError} = useGetProjectByIdQuery({projectId: id});
   const {data:projectTeamMembers} = useGetProjectTeamMembersQuery({projectId: id});
@@ -64,7 +68,7 @@ const ProjectPage = () => {
             {projectTeamMembers?.map((teamMember) => (
               <Avatar
                 key={teamMember.userId}
-                src={teamMember.user.profilePictureUrl ?? undefined}
+                src={teamMember.user.profilePictureUrl ?? placeholderAvatar}
               />
             ))}
           </AvatarGroup>

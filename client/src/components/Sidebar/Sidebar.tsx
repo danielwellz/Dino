@@ -8,7 +8,6 @@ import {
   LucideIcon,
   MessageSquare,
   Plus,
-  Settings,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,6 +21,7 @@ import {
 } from "@/state/globalSlice";
 import Logo from "@/components/Logo";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 
 const Sidebar = () => {
   const { data: projects } = useGetProjectsQuery();
@@ -37,13 +37,15 @@ const Sidebar = () => {
      transition-all duration-300 ease-in-out 
      flex flex-col gap-y-4 justify-start items-center overflow-y-auto`}
     >
-      <nav className="w-full flex flex-col gap-y-2 px-4 border-b border-[#DBDBDB] pb-4">
+      <nav className="w-full flex flex-col gap-y-2 px-4 border-b border-[#DBDBDB] pb-4 pt-3">
         <div
           className={`flex items-center ${
             isSidebarOpen ? "justify-between" : "justify-center"
-          } mb-3`}
+          } mb-3 min-h-[56px]`}
         >
-          {isSidebarOpen && <Logo size="sm" priority className="shrink-0" />}
+          {isSidebarOpen && (
+            <Logo size="xs" priority className="shrink-0 transition-all duration-300" />
+          )}
           <div
             className={`text-gray-500 cursor-pointer transform transition-transform duration-300 ${
               isSidebarOpen ? "rotate-180" : ""
@@ -79,12 +81,6 @@ const Sidebar = () => {
           title={tSidebar("tasks")}
           href="/tasks"
           Icon={ListChecks}
-          isSidebarOpen={isSidebarOpen}
-        />
-        <SidebarItem
-          title={tSidebar("settings")}
-          href="/settings"
-          Icon={Settings}
           isSidebarOpen={isSidebarOpen}
         />
       </nav>
@@ -182,6 +178,7 @@ const ProjectItem = ({
   const isActive = pathname === href;
   const [isProjectOptionsOpen, setIsProjectOptionsOpen] = useState(false);
   const [deleteProject] = useDeleteProjectMutation();
+  const router = useRouter();
   return (
     <Link href={href}>
       <div
@@ -209,20 +206,42 @@ const ProjectItem = ({
                 className={`text-gray-500  ${
                   isActive ? "text-primary-600" : ""
                 }`}
-                onClick={() => setIsProjectOptionsOpen(!isProjectOptionsOpen)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setIsProjectOptionsOpen(!isProjectOptionsOpen);
+                }}
               />
             </>
           )}
         </div>
         {isProjectOptionsOpen && isSidebarOpen && isActive && (
-          <div className=" z-50 absolute  top-7 right-0 w-2/3 p-1 bg-white rounded-md shadow-md flex flex-col gap-y-1">
+          <div
+            className=" z-50 absolute  top-7 right-0 w-2/3 p-1 bg-white rounded-md shadow-md flex flex-col gap-y-1"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
             <p
               className="text-sm cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-300 hover:bg-opacity-40 rounded-md px-2 py-1 w-full"
-              onClick={() => deleteProject({ projectId: projectId })}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                deleteProject({ projectId: projectId });
+              }}
             >
               {deleteLabel}
             </p>
-            <p className="text-sm  text-gray-500 hover:text-gray-950 hover:bg-gray-100 rounded-md px-2 py-1 cursor-pointer">
+            <p
+              className="text-sm  text-gray-500 hover:text-gray-950 hover:bg-gray-100 rounded-md px-2 py-1 cursor-pointer"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setIsProjectOptionsOpen(false);
+                router.push(href);
+              }}
+            >
               {openLabel}
             </p>
           </div>

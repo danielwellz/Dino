@@ -7,6 +7,7 @@ import {
   postConversationMessage,
   updateMessagePin,
   acknowledgeMessage,
+  deleteMessage,
 } from "../controllers/messageController";
 import { authMiddleware } from "../middleware/auth";
 
@@ -27,5 +28,6 @@ router.post(
   authMiddleware,
   acknowledgeMessage,
 );
+router.delete("/messages/:messageId", authMiddleware, deleteMessage);
 
 export default router;

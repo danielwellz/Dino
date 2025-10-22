@@ -195,6 +195,54 @@ export const addMoodboardItem = async (req: Request, res: Response) => {
     },
   });
 
+  if (item.type === MoodboardItemType.IMAGE && item.contentURL) {
+    const existingAsset = await prisma.asset.findFirst({
+      where: {
+        projectId: moodboard.projectId,
+        fileURL: item.contentURL,
+      },
+    });
+
+    if (!existingAsset) {
+      const metadataRecord = isRecord(item.metadata) ? item.metadata : {};
+      const assetName =
+        typeof metadataRecord.fileName === "string"
+          ? metadataRecord.fileName
+          : `Moodboard asset ${item.id}`;
+      const assetMime =
+        typeof metadataRecord.fileType === "string"
+          ? metadataRecord.fileType
+          : null;
+      const assetSize =
+        typeof metadataRecord.fileSize === "number"
+          ? Math.round(metadataRecord.fileSize)
+          : null;
+      const relativeUrl =
+        typeof metadataRecord.relativeUrl === "string"
+          ? metadataRecord.relativeUrl
+          : null;
+
+      await prisma.asset.create({
+        data: {
+          name: assetName,
+          description: "Imported from moodboard upload",
+          fileURL: item.contentURL,
+          previewURL: item.thumbnailURL ?? item.contentURL,
+          mimeType: assetMime ?? undefined,
+          size: assetSize ?? undefined,
+          projectId: moodboard.projectId,
+          uploadedById: userId,
+          metadata: {
+            source: "moodboard",
+            moodboardId: moodboard.id,
+            moodboardItemId: item.id,
+            relativeUrl,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    }
+  }
+
   res.status(201).json({ item });
 };
 

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTeamMessages = exports.acknowledgeMessage = exports.updateMessagePin = exports.postConversationMessage = exports.getConversationMessages = exports.createConversation = exports.getConversations = void 0;
+exports.deleteMessage = exports.getTeamMessages = exports.acknowledgeMessage = exports.updateMessagePin = exports.postConversationMessage = exports.getConversationMessages = exports.createConversation = exports.getConversations = void 0;
 const client_1 = require("@prisma/client");
 const jwt_1 = require("../utils/jwt");
 const prisma = new client_1.PrismaClient();
@@ -434,3 +434,65 @@ const getTeamMessages = (req, res) => __awaiter(void 0, void 0, void 0, function
     });
 });
 exports.getTeamMessages = getTeamMessages;
+const deleteMessage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = extractAuthUser(req);
+    if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+    }
+    const messageId = Number(req.params.messageId);
+    if (Number.isNaN(messageId)) {
+        res.status(400).json({ message: "Invalid message id" });
+        return;
+    }
+    const message = yield prisma.message.findUnique({
+        where: { id: messageId },
+        include: {
+            conversation: {
+                include: {
+                    participants: {
+                        where: { userId },
+                    },
+                },
+            },
+            team: {
+                include: {
+                    members: {
+                        where: { userId },
+                    },
+                },
+            },
+        },
+    });
+    if (!message) {
+        res.status(404).json({ message: "Message not found" });
+        return;
+    }
+    const isSender = message.userId === userId;
+    const teamMembership = message.teamId
+        ? yield prisma.teamMember.findFirst({
+            where: { teamId: message.teamId, userId },
+        })
+        : null;
+    const conversationParticipant = message.conversationId
+        ? yield prisma.conversationParticipant.findFirst({
+            where: { conversationId: message.conversationId, userId },
+        })
+        : null;
+    const isTeamManager = teamMembership &&
+        (teamMembership.role === client_1.TeamMemberRole.OWNER ||
+            teamMembership.role === client_1.TeamMemberRole.ADMIN);
+    const isConversationManager = (conversationParticipant === null || conversationParticipant === void 0 ? void 0 : conversationParticipant.role) === client_1.ConversationRole.OWNER ||
+        (conversationParticipant === null || conversationParticipant === void 0 ? void 0 : conversationParticipant.role) === client_1.ConversationRole.ADMIN;
+    if (!isSender && !isTeamManager && !isConversationManager) {
+        res.status(403).json({ message: "Forbidden" });
+        return;
+    }
+    yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+        yield tx.messageReceipt.deleteMany({ where: { messageId } });
+        yield tx.messageAttachment.deleteMany({ where: { messageId } });
+        yield tx.message.delete({ where: { id: messageId } });
+    }));
+    res.status(204).send();
+});
+exports.deleteMessage = deleteMessage;

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter, Vazirmatn } from "next/font/google";
 import "./globals.css";
 import DashboardWrapper from "./DashboardWrapper";
 import { Analytics } from "@vercel/analytics/react";
@@ -7,17 +6,6 @@ import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import { defaultLocale, locales } from "@/i18n/config";
 import type { Locale } from "@/i18n/config";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const vazirmatn = Vazirmatn({
-  variable: "--font-vazirmatn",
-  subsets: ["arabic"],
-  display: "swap",
-});
 
 async function getMessages(locale: Locale) {
   try {
@@ -50,11 +38,14 @@ export default async function RootLayout({
   const locale: Locale = matchedLocale ?? defaultLocale;
   const messages = await getMessages(locale);
 
+  const showAnalytics =
+    process.env.NODE_ENV === "production" && Boolean(process.env.VERCEL_ANALYTICS_ID);
+
   return (
     <html lang={locale} dir={locale === "fa" ? "rtl" : "ltr"}>
       <head />
-      <body className={`${inter.variable} ${vazirmatn.variable} antialiased`} suppressHydrationWarning>
-        <Analytics />
+      <body className="antialiased" suppressHydrationWarning>
+        {showAnalytics ? <Analytics /> : null}
         <NextIntlClientProvider locale={locale} messages={messages}>
           <DashboardWrapper>{children}</DashboardWrapper>
         </NextIntlClientProvider>

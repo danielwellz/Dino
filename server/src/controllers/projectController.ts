@@ -282,7 +282,6 @@ export const createProject = async (req: Request, res: Response) => {
       startDate,
       endDate,
       status = "PLANNING",
-      role = TeamMemberRole.OWNER,
       projectTypeKey,
       workflowTemplateKey,
       workflowTemplateId,
@@ -296,7 +295,6 @@ export const createProject = async (req: Request, res: Response) => {
       startDate?: string;
       endDate?: string;
       status?: string;
-      role?: TeamMemberRole;
       projectTypeKey?: string;
       workflowTemplateKey?: string;
       workflowTemplateId?: number;
@@ -355,7 +353,7 @@ export const createProject = async (req: Request, res: Response) => {
         data: {
           userId,
           teamId: team.id,
-          role,
+          role: TeamMemberRole.OWNER,
         },
         include: {
           user: true,
@@ -384,6 +382,15 @@ export const createProject = async (req: Request, res: Response) => {
         },
       });
 
+      await tx.projectParticipant.create({
+        data: {
+          projectId: project.id,
+          userId,
+          role: TeamMemberRole.OWNER,
+          status: ParticipantStatus.ACCEPTED,
+        },
+      });
+
       if (resolvedStages.length > 0) {
         await tx.projectStage.createMany({
           data: resolvedStages.map((stage) => ({
@@ -401,6 +408,16 @@ export const createProject = async (req: Request, res: Response) => {
       }[] = [];
 
       for (const participant of participants) {
+        if (
+          (participant.userId && Number(participant.userId) === userId) ||
+          (participant.email &&
+            user.email &&
+            participant.email.toLowerCase() === user.email.toLowerCase())
+        ) {
+          // Skip the creator – already connected as owner
+          // eslint-disable-next-line no-continue
+          continue;
+        }
         if (participant.userId) {
           const participantUser = await tx.user.findUnique({
             where: { userId: Number(participant.userId) },

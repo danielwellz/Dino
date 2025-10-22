@@ -297,7 +297,7 @@ const ScenarioWorkspace = ({ projectId }: { projectId: string }) => {
         </div>
       </form>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
         <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-800">Scenarios</h3>
           <p className="mt-1 text-xs text-slate-500">
@@ -528,7 +528,7 @@ const ScenarioBlockCard = ({
   };
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-500">
         <span>
           {block.order}. {block.type}
@@ -544,7 +544,7 @@ const ScenarioBlockCard = ({
         className="mt-2 w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
       />
       <textarea
-        rows={4}
+        rows={6}
         value={body}
         onChange={(event) => setBody(event.target.value)}
         onBlur={handleBlur}

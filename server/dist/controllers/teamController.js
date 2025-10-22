@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateTeamMemberRole = exports.removeTeamMember = exports.addTeamMember = exports.getAllTeams = void 0;
+exports.updateTeamMemberRole = exports.deleteTeam = exports.leaveTeam = exports.removeTeamMember = exports.addTeamMember = exports.getAllTeams = void 0;
 const client_1 = require("@prisma/client");
 const jwt_1 = require("../utils/jwt");
 const prisma = new client_1.PrismaClient();
@@ -182,6 +182,124 @@ const removeTeamMember = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.removeTeamMember = removeTeamMember;
+const leaveTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const { teamId } = req.params;
+    const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1];
+    const decoded = (0, jwt_1.verifyAccessToken)(token);
+    if (!decoded) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    try {
+        const teamIdNumber = Number(teamId);
+        if (Number.isNaN(teamIdNumber)) {
+            res.status(400).json({ error: 'teamId must be a number' });
+            return;
+        }
+        const membership = yield prisma.teamMember.findFirst({
+            where: {
+                teamId: teamIdNumber,
+                userId: Number(decoded.userId),
+            },
+        });
+        if (!membership) {
+            res.status(404).json({ error: 'Membership not found' });
+            return;
+        }
+        if (membership.role === client_1.TeamMemberRole.OWNER) {
+            const ownerCount = yield prisma.teamMember.count({
+                where: {
+                    teamId: teamIdNumber,
+                    role: client_1.TeamMemberRole.OWNER,
+                },
+            });
+            if (ownerCount <= 1) {
+                res.status(400).json({ error: 'Cannot leave team as the last owner' });
+                return;
+            }
+        }
+        yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            yield tx.conversationParticipant.deleteMany({
+                where: {
+                    userId: Number(decoded.userId),
+                    conversation: { teamId: teamIdNumber },
+                },
+            });
+            yield tx.teamMember.delete({
+                where: { id: membership.id },
+            });
+        }));
+        res.status(200).json({ message: 'Left team successfully' });
+    }
+    catch (error) {
+        console.error('Error leaving team:', error);
+        res.status(500).json({ error: 'Failed to leave team' });
+    }
+});
+exports.leaveTeam = leaveTeam;
+const deleteTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const { teamId } = req.params;
+    const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1];
+    const decoded = (0, jwt_1.verifyAccessToken)(token);
+    if (!decoded) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+    }
+    try {
+        const teamIdNumber = Number(teamId);
+        if (Number.isNaN(teamIdNumber)) {
+            res.status(400).json({ error: 'teamId must be a number' });
+            return;
+        }
+        const membership = yield prisma.teamMember.findFirst({
+            where: {
+                teamId: teamIdNumber,
+                userId: Number(decoded.userId),
+            },
+        });
+        if (!membership || membership.role !== client_1.TeamMemberRole.OWNER) {
+            res.status(403).json({ error: 'Only team owners can delete the team' });
+            return;
+        }
+        yield prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            yield tx.messageReceipt.deleteMany({
+                where: { message: { teamId: teamIdNumber } },
+            });
+            yield tx.messageAttachment.deleteMany({
+                where: { message: { teamId: teamIdNumber } },
+            });
+            yield tx.message.deleteMany({
+                where: { teamId: teamIdNumber },
+            });
+            yield tx.conversation.deleteMany({
+                where: { teamId: teamIdNumber },
+            });
+            yield tx.project.deleteMany({
+                where: { teamId: teamIdNumber },
+            });
+            yield tx.assetFolder.deleteMany({
+                where: { teamId: teamIdNumber },
+            });
+            yield tx.assetTag.deleteMany({
+                where: { teamId: teamIdNumber },
+            });
+            yield tx.teamMember.deleteMany({
+                where: { teamId: teamIdNumber },
+            });
+            yield tx.team.delete({
+                where: { id: teamIdNumber },
+            });
+        }));
+        res.status(200).json({ message: 'Team deleted successfully' });
+    }
+    catch (error) {
+        console.error('Error deleting team:', error);
+        res.status(500).json({ error: 'Failed to delete team' });
+    }
+});
+exports.deleteTeam = deleteTeam;
 // update team member role
 const updateTeamMemberRole = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;

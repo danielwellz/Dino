@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Storyboard, StoryboardFrame } from "@/app/types/types";
 import {
   useAddStoryboardFrameMutation,
@@ -17,6 +17,8 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
+import { uploadFile } from "@/lib/upload";
+import { useAppSelector } from "@/app/redux";
 
 type StoryboardWorkspaceProps = {
   projectId: string;
@@ -24,6 +26,8 @@ type StoryboardWorkspaceProps = {
 
 const StoryboardWorkspace = ({ projectId }: StoryboardWorkspaceProps) => {
   const numericProjectId = Number(projectId);
+  const authToken = useAppSelector((state) => state.auth.token);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { data, isLoading, refetch } = useGetStoryboardsQuery(
     { projectId },
     { skip: Number.isNaN(numericProjectId) },
@@ -50,10 +54,12 @@ const StoryboardWorkspace = ({ projectId }: StoryboardWorkspaceProps) => {
   const [frameTitle, setFrameTitle] = useState("");
   const [frameDescription, setFrameDescription] = useState("");
   const [frameImage, setFrameImage] = useState("");
+  const [frameImageName, setFrameImageName] = useState<string | null>(null);
   const [frameTaskId, setFrameTaskId] = useState<number | null>(null);
   const [frameDuration, setFrameDuration] = useState<number | null>(null);
   const [embedUrl, setEmbedUrl] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isUploadingFrameImage, setIsUploadingFrameImage] = useState(false);
 
   const selectedStoryboard =
     storyboards.find((board) => board.id === selectedStoryboardId) ?? null;
@@ -112,6 +118,58 @@ const StoryboardWorkspace = ({ projectId }: StoryboardWorkspaceProps) => {
     } as Record<string, unknown>;
   };
 
+  const uploadFrameImage = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setToast("Only image files can be uploaded.");
+      return;
+    }
+    setIsUploadingFrameImage(true);
+    try {
+      const uploaded = await uploadFile(file, authToken);
+      setFrameImage(uploaded.url);
+      setFrameImageName(uploaded.fileName ?? file.name);
+      setToast("Frame image uploaded.");
+    } catch (error: any) {
+      setToast(
+        error?.message ??
+          error?.data?.message ??
+          "Unable to upload frame image.",
+      );
+    } finally {
+      setIsUploadingFrameImage(false);
+    }
+  };
+
+  const handleFrameImageUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFrameImageFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    await uploadFrameImage(file);
+    event.target.value = "";
+  };
+
+  const handleFrameImageDrop = async (
+    event: React.DragEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    const files = event.dataTransfer.files;
+    if (!files?.length) {
+      return;
+    }
+    const [file] = Array.from(files);
+    if (!file) {
+      return;
+    }
+    await uploadFrameImage(file);
+  };
+
   const handleCreateFrame = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedStoryboard) {
@@ -131,6 +189,7 @@ const StoryboardWorkspace = ({ projectId }: StoryboardWorkspaceProps) => {
       setFrameTitle("");
       setFrameDescription("");
       setFrameImage("");
+      setFrameImageName(null);
       setFrameTaskId(null);
       setFrameDuration(null);
       setEmbedUrl("");
@@ -270,7 +329,7 @@ const StoryboardWorkspace = ({ projectId }: StoryboardWorkspaceProps) => {
         </div>
       </form>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
         <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-800">
             Storyboards
@@ -310,24 +369,75 @@ const StoryboardWorkspace = ({ projectId }: StoryboardWorkspaceProps) => {
             <h4 className="text-sm font-semibold text-slate-800">
               Add frame
             </h4>
+          <input
+            type="text"
+            value={frameTitle}
+            onChange={(event) => setFrameTitle(event.target.value)}
+            placeholder="Frame title"
+            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
+          />
+          <textarea
+            rows={3}
+            value={frameDescription}
+            onChange={(event) => setFrameDescription(event.target.value)}
+            placeholder="Action, camera notes, or VO details"
+            className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
+          />
+            <div
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={handleFrameImageDrop}
+              className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-500"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-slate-700">Frame image</span>
+                <button
+                  type="button"
+                  onClick={handleFrameImageUploadClick}
+                  className="text-xs font-medium text-primary-600 transition hover:text-primary-700"
+                >
+                  Upload
+                </button>
+              </div>
+              <p className="mt-2">
+                Drag & drop a still here or use the field below to paste a link.
+              </p>
+              {frameImageName && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Selected: {frameImageName}
+                </p>
+              )}
+              {isUploadingFrameImage && (
+                <p className="mt-2 text-xs text-primary-600">
+                  Uploading image...
+                </p>
+              )}
+              {frameImage && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFrameImage("");
+                    setFrameImageName(null);
+                  }}
+                  className="mt-2 text-xs font-medium text-red-500 transition hover:text-red-600"
+                >
+                  Clear image
+                </button>
+              )}
+            </div>
             <input
-              type="text"
-              value={frameTitle}
-              onChange={(event) => setFrameTitle(event.target.value)}
-              placeholder="Frame title"
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
-            />
-            <textarea
-              rows={3}
-              value={frameDescription}
-              onChange={(event) => setFrameDescription(event.target.value)}
-              placeholder="Action, camera notes, or VO details"
-              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFrameImageFileSelect}
             />
             <input
               type="url"
               value={frameImage}
-              onChange={(event) => setFrameImage(event.target.value)}
+              onChange={(event) => {
+                setFrameImage(event.target.value);
+                setFrameImageName(null);
+              }}
               placeholder="Reference image URL"
               className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
             />
@@ -428,7 +538,7 @@ const FrameCard = ({ frame, onMove, onDurationChange }: FrameCardProps) => {
   const metadata = (frame.metadata as Record<string, unknown> | null) ?? {};
   const embedUrl = typeof metadata.embedUrl === "string" ? metadata.embedUrl : "";
   return (
-    <div className="flex min-w-[240px] flex-col gap-2 rounded-md border border-slate-200 bg-white p-3 shadow">
+    <div className="flex min-w-[280px] flex-col gap-2 rounded-md border border-slate-200 bg-white p-4 shadow">
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-wide text-slate-400">
           Frame {frame.order}
@@ -454,17 +564,17 @@ const FrameCard = ({ frame, onMove, onDurationChange }: FrameCardProps) => {
         <img
           src={frame.imageURL}
           alt={frame.title ?? "Storyboard frame"}
-          className="h-32 w-full rounded-md object-cover"
+          className="h-44 w-full rounded-md object-cover"
         />
       ) : embedUrl ? (
         <iframe
           src={embedUrl}
           title={`Storyboard embed ${frame.id}`}
-          className="h-32 w-full rounded-md border-0"
+          className="h-44 w-full rounded-md border-0"
           allow="fullscreen"
         />
       ) : (
-        <div className="flex h-32 items-center justify-center rounded-md border border-dashed border-slate-300 text-xs text-slate-500">
+        <div className="flex h-44 items-center justify-center rounded-md border border-dashed border-slate-300 text-xs text-slate-500">
           Attach an image or embed reference.
         </div>
       )}

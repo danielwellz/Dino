@@ -6,9 +6,8 @@ import { DragSourceMonitor, useDrag } from "react-dnd";
 import { Task } from "@/app/types/types";
 import { Avatar, AvatarGroup } from "@mui/material";
 import { Ellipsis, MessageSquare, Paperclip } from "lucide-react";
-
-
-
+import { useLocale } from "next-intl";
+import { getLocalizedAvatarPlaceholder } from "@/lib/avatar";
 
 export default function TaskCard ({ task }: { task: Task }) {
   const [isTaskOptionsOpen, setIsTaskOptionsOpen] = useState(false);
@@ -19,8 +18,8 @@ export default function TaskCard ({ task }: { task: Task }) {
 
   const dispatch = useDispatch();
   const [deleteTask] = useDeleteTaskMutation();
-
-  
+  const locale = useLocale();
+  const placeholderAvatar = getLocalizedAvatarPlaceholder(locale);
 
   const handleOpenTaskDetails = () => {
     dispatch(setSelectedTask(task));
@@ -29,7 +28,7 @@ export default function TaskCard ({ task }: { task: Task }) {
 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "task",
-    item: { id: task.id },
+    item: { id: task.id.toString(), projectId: task.projectId },
     collect: (monitor: DragSourceMonitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -108,7 +107,7 @@ export default function TaskCard ({ task }: { task: Task }) {
             {task.taskAssignments?.map((teamMember) => (
               <Avatar
                 key={teamMember.userId}
-                src={teamMember.user.profilePictureUrl ?? undefined}
+                src={teamMember.user.profilePictureUrl ?? placeholderAvatar}
                 sx={{ width: 20, height: 20 }}
               />
             ))}

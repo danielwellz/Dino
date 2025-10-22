@@ -134,9 +134,9 @@ export default function GanttChart({ id, projectTasks }: Props) {
   if (!projectTasks ) return <Loader />
 
   return (
-    <div className="w-full h-full bg-white">
+    <div className="flex w-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       {/* View Mode Controls */}
-      <div className="flex gap-2 p-4 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-gray-200 p-4">
         {["Hour", "Day", "Week", "Month"].map((mode) => (
           <button
             key={mode}
@@ -153,7 +153,7 @@ export default function GanttChart({ id, projectTasks }: Props) {
       </div>
 
       {/* Gantt Chart */}
-      <div className="flex-1 h-full">
+      <div className="flex-1 overflow-auto">
         <Gantt     
           tasks={ganttTasks}
           viewMode={viewMode}
@@ -165,7 +165,7 @@ export default function GanttChart({ id, projectTasks }: Props) {
           rowHeight={50}
           barCornerRadius={4}
           handleWidth={8}
-          fontFamily="Inter, system-ui, sans-serif"
+          fontFamily="Roboto, system-ui, sans-serif"
           fontSize="14px"
           arrowColor={getHexFromTailwindColor("secondary-950")}
           arrowIndent={20}
@@ -190,7 +190,7 @@ export default function GanttChart({ id, projectTasks }: Props) {
       </div>
 
       {/* Status Legend */}
-      <div className="flex gap-4 p-4 border-t border-gray-200 bg-gray-50">
+      <div className="flex flex-wrap gap-4 border-t border-gray-200 bg-gray-50 p-4">
         {[
           { label: "To Do", color: "red-400" },
           { label: "In Progress", color: "primary-500" },

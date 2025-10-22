@@ -193,6 +193,143 @@ export const removeTeamMember = async (req: Request, res: Response) => {
     }
 };
 
+export const leaveTeam = async (req: Request, res: Response) => {
+  const { teamId } = req.params;
+  const token = req.headers.authorization?.split(' ')[1];
+  const decoded = verifyAccessToken(token as string);
+
+  if (!decoded) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    const teamIdNumber = Number(teamId);
+    if (Number.isNaN(teamIdNumber)) {
+      res.status(400).json({ error: 'teamId must be a number' });
+      return;
+    }
+
+    const membership = await prisma.teamMember.findFirst({
+      where: {
+        teamId: teamIdNumber,
+        userId: Number(decoded.userId),
+      },
+    });
+
+    if (!membership) {
+      res.status(404).json({ error: 'Membership not found' });
+      return;
+    }
+
+    if (membership.role === TeamMemberRole.OWNER) {
+      const ownerCount = await prisma.teamMember.count({
+        where: {
+          teamId: teamIdNumber,
+          role: TeamMemberRole.OWNER,
+        },
+      });
+
+      if (ownerCount <= 1) {
+        res.status(400).json({ error: 'Cannot leave team as the last owner' });
+        return;
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.conversationParticipant.deleteMany({
+        where: {
+          userId: Number(decoded.userId),
+          conversation: { teamId: teamIdNumber },
+        },
+      });
+
+      await tx.teamMember.delete({
+        where: { id: membership.id },
+      });
+    });
+
+    res.status(200).json({ message: 'Left team successfully' });
+  } catch (error: any) {
+    console.error('Error leaving team:', error);
+    res.status(500).json({ error: 'Failed to leave team' });
+  }
+};
+
+export const deleteTeam = async (req: Request, res: Response) => {
+  const { teamId } = req.params;
+  const token = req.headers.authorization?.split(' ')[1];
+  const decoded = verifyAccessToken(token as string);
+
+  if (!decoded) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    const teamIdNumber = Number(teamId);
+    if (Number.isNaN(teamIdNumber)) {
+      res.status(400).json({ error: 'teamId must be a number' });
+      return;
+    }
+
+    const membership = await prisma.teamMember.findFirst({
+      where: {
+        teamId: teamIdNumber,
+        userId: Number(decoded.userId),
+      },
+    });
+
+    if (!membership || membership.role !== TeamMemberRole.OWNER) {
+      res.status(403).json({ error: 'Only team owners can delete the team' });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.messageReceipt.deleteMany({
+        where: { message: { teamId: teamIdNumber } },
+      });
+
+      await tx.messageAttachment.deleteMany({
+        where: { message: { teamId: teamIdNumber } },
+      });
+
+      await tx.message.deleteMany({
+        where: { teamId: teamIdNumber },
+      });
+
+      await tx.conversation.deleteMany({
+        where: { teamId: teamIdNumber },
+      });
+
+      await tx.project.deleteMany({
+        where: { teamId: teamIdNumber },
+      });
+
+      await tx.assetFolder.deleteMany({
+        where: { teamId: teamIdNumber },
+      });
+
+      await tx.assetTag.deleteMany({
+        where: { teamId: teamIdNumber },
+      });
+
+      await tx.teamMember.deleteMany({
+        where: { teamId: teamIdNumber },
+      });
+
+      await tx.team.delete({
+        where: { id: teamIdNumber },
+      });
+    });
+
+    res.status(200).json({ message: 'Team deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting team:', error);
+    res.status(500).json({ error: 'Failed to delete team' });
+  }
+};
+
 
 
 // update team member role

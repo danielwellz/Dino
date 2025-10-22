@@ -8,6 +8,7 @@
     "search": "Search",
     "logout": "Log out",
     "profile": "Profile",
+    "settings": "Settings",
     "location": "Tunis, TN",
     "delete": "Delete",
     "open": "Open",
@@ -39,7 +40,30 @@
     "errorLoadingProjects": "Unable to load projects right now.",
     "errorLoadingTasks": "Unable to load tasks right now.",
     "tasksLabel": "Tasks",
-    "runningTasks": "Running Tasks"
+    "runningTasks": "Running Tasks",
+    "chart": {
+      "title": "Activity",
+      "descriptionWeek": "Last 7 days",
+      "descriptionMonth": "Last 4 weeks",
+      "toggleToMonth": "Month View",
+      "toggleToWeek": "Week View",
+      "seriesLabel": "Tasks Completed",
+      "weekdays": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
+      "weeks": {
+        "week1": "Week 1",
+        "week2": "Week 2",
+        "week3": "Week 3",
+        "week4": "Week 4"
+      }
+    }
   },
   "landing": {
     "nav": {
@@ -286,7 +310,8 @@
         "sent": "Sent",
         "delivered": "Delivered",
         "read": "Read"
-      }
+      },
+      "delete": "Delete message"
     },
     "composer": {
       "newConversation": "New conversation",
@@ -334,6 +359,34 @@
       "TEAM": "Team"
     }
   },
+  "settingsPage": {
+    "title": "Workspace Settings",
+    "subtitle": "Manage your profile, notification preferences, and workspace security in one place.",
+    "profile": {
+      "heading": "Profile",
+      "description": "Update your personal information and choose your preferred language.",
+      "email": "Email",
+      "language": "Default language",
+      "languageValue": "Uses language selected from the navbar switcher."
+    },
+    "notifications": {
+      "heading": "Notifications",
+      "description": "Control how Dino keeps you informed about project activity.",
+      "email": "Email updates",
+      "emailDescription": "Receive summary emails for mentions, assignments, and approvals.",
+      "desktop": "Desktop alerts",
+      "desktopDescription": "Show real-time alerts for chat messages and task changes."
+    },
+    "security": {
+      "heading": "Security",
+      "description": "Review sign-in and password settings.",
+      "password": "Password",
+      "passwordHint": "Set a strong password with at least 12 characters."
+    },
+    "actions": {
+      "changePassword": "Change password"
+    }
+  },
   "storycraft": {
     "title": "Storycraft Studio",
     "tabs": {
@@ -376,5 +429,57 @@
       "body": "Body",
       "ai": "AI script assistant coming soon."
     }
+  },
+  "tasksPage": {
+    "title": "My Tasks",
+    "newTask": "New task",
+    "emptyState": "No tasks created yet.",
+    "kanbanView": "Kanban view",
+    "listView": "List view",
+    "filters": "Filters",
+    "assignee": "Assignee",
+    "status": "Status",
+    "priority": "Priority",
+    "dueDate": "Due date",
+    "actions": "Actions"
+  },
+  "membersPage": {
+    "title": "My Teams",
+    "subtitle": "View teams from projects you own or participate in.",
+    "searchPlaceholder": "Search teams or projects...",
+    "searchAria": "Search teams",
+    "manageBadge": "You manage this team",
+    "leaveButton": "Leave team",
+    "deleteButton": "Delete team",
+    "deleteConfirm": "Delete this team? This also removes associated resources.",
+    "noMembers": "No team members found",
+    "emptyState": "No teams match this search."
+  },
+  "taskModals": {
+    "createTitle": "New task",
+    "editTitle": "Edit task",
+    "name": "Task title",
+    "description": "Description",
+    "assignee": "Assignee",
+    "project": "Project",
+    "status": "Status",
+    "priority": "Priority",
+    "deadline": "Due date",
+    "estimate": "Estimated time (hours)",
+    "createTask": "Create task",
+    "updateTask": "Update task",
+    "cancel": "Cancel",
+    "deleteConfirmTitle": "Delete task",
+    "deleteConfirmDescription": "Are you sure you want to delete this task?"
+  },
+  "memberModal": {
+    "inviteTitle": "Invite member",
+    "editTitle": "Edit member",
+    "user": "User",
+    "role": "Role",
+    "team": "Team",
+    "invite": "Send invite",
+    "update": "Update",
+    "cancel": "Cancel"
   }
 }

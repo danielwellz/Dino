@@ -58,6 +58,7 @@ coverage/
 # Temporary files
 tmp/
 temp/
+/uploads/
 
 # Prisma
 server/prisma/*.db

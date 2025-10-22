@@ -14,4 +14,5 @@ router.get("/:conversationId/messages", auth_1.authMiddleware, messageController
 router.post("/:conversationId/messages", auth_1.authMiddleware, messageController_1.postConversationMessage);
 router.post("/messages/:messageId/pin", auth_1.authMiddleware, messageController_1.updateMessagePin);
 router.post("/messages/:messageId/receipt", auth_1.authMiddleware, messageController_1.acknowledgeMessage);
+router.delete("/messages/:messageId", auth_1.authMiddleware, messageController_1.deleteMessage);
 exports.default = router;

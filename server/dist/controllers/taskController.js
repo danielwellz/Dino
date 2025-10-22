@@ -60,7 +60,13 @@ const getProjectTasks = (req, res) => __awaiter(void 0, void 0, void 0, function
                             }
                         }
                     }
-                }
+                },
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
             }
         });
         res.json(tasks);
@@ -227,7 +233,18 @@ const getUserTasks = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const userId = decoded === null || decoded === void 0 ? void 0 : decoded.userId;
         const userTaskAssignments = yield prisma.taskAssignment.findMany({
             where: { userId: Number(userId) },
-            include: { task: true },
+            include: {
+                task: {
+                    include: {
+                        project: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
+            },
         });
         const tasks = userTaskAssignments.map((assignment) => assignment.task);
         res.status(200).json(tasks);

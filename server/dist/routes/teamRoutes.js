@@ -11,4 +11,6 @@ router.get("/", auth_1.authMiddleware, teamController_1.getAllTeams);
 router.post("/members", auth_1.authMiddleware, teamController_1.addTeamMember);
 router.delete("/:teamId/members/:userId", auth_1.authMiddleware, teamController_1.removeTeamMember);
 router.patch("/:teamId/members/:userId/role", auth_1.authMiddleware, teamController_1.updateTeamMemberRole);
+router.post("/:teamId/leave", auth_1.authMiddleware, teamController_1.leaveTeam);
+router.delete("/:teamId", auth_1.authMiddleware, teamController_1.deleteTeam);
 exports.default = router;

@@ -52,7 +52,13 @@ export const getProjectTasks = async (req: Request, res: Response): Promise<void
                 }
             }
               }
-          }
+          },
+          project: {
+              select: {
+                  id: true,
+                  name: true,
+              },
+          },
             }
         });
         res.json(tasks);
@@ -239,7 +245,18 @@ export const getUserTasks = async (req: Request, res: Response): Promise<void> =
 
       const userTaskAssignments = await prisma.taskAssignment.findMany({
         where: { userId: Number(userId) },
-        include: { task: true },
+        include: {
+          task: {
+            include: {
+              project: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       const tasks = userTaskAssignments.map((assignment) => assignment.task);

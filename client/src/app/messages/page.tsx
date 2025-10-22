@@ -3,12 +3,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import clsx from "clsx";
+import { uploadFile } from "@/lib/upload";
 import {
   MessageSquarePlus,
   Paperclip,
   Send,
   Pin,
   PinOff,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useTranslations, useLocale } from "next-intl";
@@ -23,6 +25,7 @@ import {
   useUpdateMessagePinMutation,
   useGetUsersQuery,
   useAcknowledgeMessageMutation,
+  useDeleteMessageMutation,
 } from "@/state/api";
 import {
   ChatMessage,
@@ -37,6 +40,8 @@ type AttachmentDraft = {
   fileName?: string;
   fileType?: string;
   fileSize?: number;
+  thumbnailURL?: string;
+  relativeUrl?: string;
 };
 
 type ActiveChat =
@@ -56,6 +61,7 @@ const ChatPage = () => {
   const t = useTranslations("chat");
   const locale = useLocale();
   const currentUser = useAppSelector((state) => state.auth.user);
+  const authToken = useAppSelector((state) => state.auth.token);
   const timeFormatter = useMemo(() => buildTimeFormatter(locale), [locale]);
 
   const { data: teamsData = [] } = useGetUserTeamsQuery();
@@ -69,13 +75,12 @@ const ChatPage = () => {
   const [postConversationMessage] = usePostConversationMessageMutation();
   const [updateMessagePin] = useUpdateMessagePinMutation();
   const [acknowledgeMessage] = useAcknowledgeMessageMutation();
+  const [deleteMessageMutation] = useDeleteMessageMutation();
 
   const [activeChat, setActiveChat] = useState<ActiveChat>(null);
   const [liveMessages, setLiveMessages] = useState<ChatMessage[]>([]);
   const [draftMessage, setDraftMessage] = useState("");
-  const [attachmentDrafts, setAttachmentDrafts] = useState<AttachmentDraft[]>(
-    [],
-  );
+  const [attachmentDrafts, setAttachmentDrafts] = useState<AttachmentDraft[]>([]);
   const [showNewConversation, setShowNewConversation] = useState(false);
   const [conversationType, setConversationType] = useState<ConversationType>(
     ConversationType.DIRECT,
@@ -83,8 +88,10 @@ const ChatPage = () => {
   const [directParticipant, setDirectParticipant] = useState("");
   const [groupParticipants, setGroupParticipants] = useState<number[]>([]);
   const [groupTitle, setGroupTitle] = useState("");
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const activeChatRef = useRef<ActiveChat>(null);
   const teamConversationIdRef = useRef<number | null>(null);
@@ -177,7 +184,18 @@ const ChatPage = () => {
             teamConversationId &&
             conversationId === teamConversationId))
       ) {
-        setLiveMessages((prev) => [...prev, message]);
+        setLiveMessages((prev) => {
+          const tempId =
+            message.metadata && typeof message.metadata === "object"
+              ? (message.metadata as Record<string, unknown>).clientTempId
+              : undefined;
+          const filtered = tempId
+            ? prev.filter((existing) =>
+                (existing.metadata as Record<string, unknown> | undefined)?.clientTempId !== tempId,
+              )
+            : prev;
+          return [...filtered, message];
+        });
       }
     });
 
@@ -226,28 +244,68 @@ const ChatPage = () => {
     const trimmed = draftMessage.trim();
     if (!trimmed && attachmentDrafts.length === 0) return;
 
+    const clientTempId = `temp-${Date.now()}`;
+    const normalizedAttachments = attachmentDrafts.map((attachment, index) => ({
+      id: -(Date.now() + index),
+      fileURL: attachment.fileURL,
+      fileName: attachment.fileName,
+      fileType: attachment.fileType,
+      fileSize: attachment.fileSize,
+      thumbnailURL: attachment.thumbnailURL,
+    }));
+
     const payload = {
       conversationId:
         activeChat.mode === "conversation" ? activeChat.conversationId : undefined,
       teamId: activeChat.mode === "team" ? activeChat.teamId : undefined,
       content: trimmed,
-      attachments: attachmentDrafts,
-      metadata: { source: "web" },
+      attachments: normalizedAttachments,
+      metadata: { source: "web", clientTempId },
+    };
+
+    const optimisticMessage = {
+      id: -Date.now(),
+      text: trimmed,
+      status: MessageStatus.SENT,
+      conversationId: payload.conversationId ?? undefined,
+      teamId: payload.teamId ?? undefined,
+      senderId: currentUser?.userId ?? 0,
+      sender: {
+        id: currentUser?.userId ?? 0,
+        username: currentUser?.username ?? "You",
+        profilePictureUrl: currentUser?.profilePictureUrl ?? undefined,
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      attachments: normalizedAttachments,
+      metadata: { clientTempId },
+    } as ChatMessage;
+
+    const finalize = () => {
+      setDraftMessage("");
+      setAttachmentDrafts([]);
     };
 
     if (socketRef.current) {
+      setLiveMessages((prev) => [...prev, optimisticMessage]);
       socketRef.current.emit("sendMessage", payload);
-    } else if (activeChat.mode === "conversation") {
+      finalize();
+      return;
+    }
+
+    if (activeChat.mode === "conversation") {
+      setLiveMessages((prev) => [...prev, optimisticMessage]);
       postConversationMessage({
         conversationId: String(activeChat.conversationId),
         text: trimmed,
-        attachments: attachmentDrafts,
-        metadata: { source: "web" },
+        attachments: normalizedAttachments,
+        metadata: { source: "web", clientTempId },
       }).catch(() => undefined);
+      finalize();
+      return;
     }
 
-    setDraftMessage("");
-    setAttachmentDrafts([]);
+    finalize();
   };
 
   const handleToggleGroupParticipant = (userId: number) => {
@@ -264,6 +322,58 @@ const ChatPage = () => {
 
   const handleRemoveAttachment = (index: number) => {
     setAttachmentDrafts((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const uploadAndAttachFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    for (const file of list) {
+      try {
+        const uploaded = await uploadFile(file, authToken);
+        handleAddAttachment({
+          fileURL: uploaded.url,
+          fileName: uploaded.fileName ?? file.name,
+          fileType: uploaded.fileType ?? file.type,
+          fileSize: uploaded.fileSize ?? file.size,
+          thumbnailURL: uploaded.thumbnailURL ?? undefined,
+          relativeUrl: uploaded.relativeUrl,
+        });
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to upload attachment", error);
+      }
+    }
+  };
+
+  const handleUploadAttachmentClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleSelectAttachmentFiles = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const { files } = event.target;
+    if (!files?.length) {
+      return;
+    }
+    await uploadAndAttachFiles(files);
+    event.target.value = "";
+  };
+
+  const handleDropAttachments = async (
+    event: React.DragEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    const { files, items } = event.dataTransfer;
+    if (files && files.length > 0) {
+      await uploadAndAttachFiles(files);
+      return;
+    }
+    if (items && items.length > 0) {
+      const url = event.dataTransfer.getData("text/uri-list");
+      if (url) {
+        handleAddAttachment({ fileURL: url });
+      }
+    }
   };
 
   const handlePromptAttachment = () => {
@@ -287,6 +397,33 @@ const ChatPage = () => {
       );
     } catch {
       // ignore
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: number) => {
+    if (messageId <= 0) {
+      return;
+    }
+    setDeletingMessageId(messageId);
+    try {
+      await deleteMessageMutation({
+        messageId: String(messageId),
+        teamId:
+          activeChat?.mode === "team" ? String(activeChat.teamId) : undefined,
+      }).unwrap();
+      setLiveMessages((prev) =>
+        prev.filter((message) => message.id !== messageId),
+      );
+      if (activeChat?.mode === "conversation") {
+        conversationMessagesQuery.refetch();
+      } else if (activeChat?.mode === "team") {
+        teamMessagesQuery.refetch();
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to delete message", error);
+    } finally {
+      setDeletingMessageId(null);
     }
   };
 
@@ -368,18 +505,25 @@ const ChatPage = () => {
       ? userTeams.find((team) => team.id === activeTeamId)
       : null;
 
-  const participantsToDisplay =
-    activeConversation?.participants?.map((participant) => ({
-      id: participant.userId,
-      name: participant.username,
-      role: participant.role,
-    })) ??
-    activeTeam?.members?.map((member) => ({
-      id: member.userId,
-      name: member.user.username,
-      role: member.role,
-    })) ??
-    [];
+  const participantsToDisplay = useMemo<Array<{ id: number; name: string; role: string }>>(() => {
+    if (activeConversation?.participants) {
+      return activeConversation.participants.map((participant) => ({
+        id: participant.userId,
+        name: participant.username ?? t("sidebar.unknownUser"),
+        role: participant.role ?? TeamMemberRole.MEMBER,
+      }));
+    }
+
+    if (activeTeam?.members) {
+      return activeTeam.members.map((member) => ({
+        id: member.userId,
+        name: member.user?.username ?? t("sidebar.unknownUser"),
+        role: member.role ?? TeamMemberRole.MEMBER,
+      }));
+    }
+
+    return [];
+  }, [activeConversation, activeTeam]);
 
   return (
     <div className="grid h-screen w-full grid-cols-1 bg-white lg:grid-cols-[320px_auto_280px]">
@@ -587,6 +731,8 @@ const ChatPage = () => {
           <div className="flex flex-col gap-3">
             {liveMessages.map((message) => {
               const isOwn = message.sender.id === currentUser?.userId;
+              const showDelete = isOwn && message.id > 0;
+              const isDeleting = deletingMessageId === message.id;
               return (
                 <div
                   key={message.id}
@@ -630,20 +776,34 @@ const ChatPage = () => {
                       <button
                         type="button"
                         onClick={() => handlePinMessage(message.id)}
-                        className="inline-flex items-center gap-1 text-gray-400 transition hover:text-primary-500"
+                        disabled={message.id <= 0}
+                        className="inline-flex items-center gap-1 text-gray-400 transition hover:text-primary-500 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <Pin size={12} />
                         {message.pinnedAt
                           ? t("message.unpin")
                           : t("message.pin")}
                       </button>
-                      <span>
-                        {message.status === MessageStatus.READ
-                          ? t("message.status.read")
-                          : message.status === MessageStatus.DELIVERED
-                          ? t("message.status.delivered")
-                          : t("message.status.sent")}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        {showDelete && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMessage(message.id)}
+                            disabled={isDeleting}
+                            className="inline-flex items-center gap-1 text-gray-400 transition hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Trash2 size={12} />
+                            {t("message.delete")}
+                          </button>
+                        )}
+                        <span>
+                          {message.status === MessageStatus.READ
+                            ? t("message.status.read")
+                            : message.status === MessageStatus.DELIVERED
+                            ? t("message.status.delivered")
+                            : t("message.status.sent")}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -673,14 +833,33 @@ const ChatPage = () => {
               ))}
             </div>
           )}
-          <div className="flex items-center gap-3 rounded-lg border border-gray-300 px-4 py-3">
+          <div
+            className="flex items-center gap-3 rounded-lg border border-gray-300 px-4 py-3"
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleDropAttachments}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleSelectAttachmentFiles}
+            />
             <button
               type="button"
-              onClick={handlePromptAttachment}
+              onClick={handleUploadAttachmentClick}
               className="text-gray-500 transition hover:text-primary-600"
               aria-label={t("composer.addAttachment")}
             >
               <Paperclip size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={handlePromptAttachment}
+              className="text-xs font-medium text-gray-500 transition hover:text-primary-600"
+            >
+              {t("composer.addAttachment")}
             </button>
             <input
               value={draftMessage}

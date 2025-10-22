@@ -240,7 +240,7 @@ const getProjects = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.getProjects = getProjects;
 const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { name, description, startDate, endDate, status = "PLANNING", role = client_1.TeamMemberRole.OWNER, projectTypeKey, workflowTemplateKey, workflowTemplateId, stages = [], participants = [], sendInvites = false, metadata = {}, } = req.body;
+        const { name, description, startDate, endDate, status = "PLANNING", projectTypeKey, workflowTemplateKey, workflowTemplateId, stages = [], participants = [], sendInvites = false, metadata = {}, } = req.body;
         const userId = extractAuthUser(req);
         if (!userId) {
             res.status(401).json({ message: "Unauthorized: User not authenticated" });
@@ -282,7 +282,7 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 data: {
                     userId,
                     teamId: team.id,
-                    role,
+                    role: client_1.TeamMemberRole.OWNER,
                 },
                 include: {
                     user: true,
@@ -304,6 +304,14 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                     onboardingMetadata: projectMetadata,
                 },
             });
+            yield tx.projectParticipant.create({
+                data: {
+                    projectId: project.id,
+                    userId,
+                    role: client_1.TeamMemberRole.OWNER,
+                    status: client_1.ParticipantStatus.ACCEPTED,
+                },
+            });
             if (resolvedStages.length > 0) {
                 yield tx.projectStage.createMany({
                     data: resolvedStages.map((stage) => (Object.assign(Object.assign({}, stage), { projectId: project.id }))),
@@ -311,6 +319,14 @@ const createProject = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             }
             const pendingInvitations = [];
             for (const participant of participants) {
+                if ((participant.userId && Number(participant.userId) === userId) ||
+                    (participant.email &&
+                        user.email &&
+                        participant.email.toLowerCase() === user.email.toLowerCase())) {
+                    // Skip the creator – already connected as owner
+                    // eslint-disable-next-line no-continue
+                    continue;
+                }
                 if (participant.userId) {
                     const participantUser = yield tx.user.findUnique({
                         where: { userId: Number(participant.userId) },

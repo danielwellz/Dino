@@ -6,6 +6,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import http from "http";
+import path from "path";
+import fs from "fs";
 import { Server } from "socket.io";
 import { initMessageSocket } from "./sockets/messageSocket";
 
@@ -20,6 +22,7 @@ import messageRoutes from "./routes/messageRouter";
 import assetRoutes from "./routes/assetRoutes";
 import creativeRoutes from "./routes/creativeRoutes";
 import { swaggerSpec, swaggerUi } from "./swagger";
+import uploadRoutes from "./routes/uploadRoutes";
 
 /* CONFIGURATIONS */
 dotenv.config();
@@ -53,6 +56,12 @@ initMessageSocket(io);
 /* COOKIES */
 app.use(cookieParser());
 
+const uploadsDir = path.join(__dirname, "..", "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use("/uploads", express.static(uploadsDir));
+
 /* ROUTES */
 app.get("/", (req, res) => {
   res.send("This is test route");
@@ -69,6 +78,7 @@ app.use("/api/teams", teamRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/assets", assetRoutes);
 app.use("/api/creative", creativeRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 
 /* SERVER */

@@ -10,6 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import ProjectCard from "@/components/ProjectCard";
 import { TaskCard } from "@/components/TaskCard";
 import { useTranslations, useLocale } from "next-intl";
+import { faIR } from "date-fns/locale";
 
 function HomePage() {
   const { data: projects, isLoading: isLoadingProjects, isError: isErrorProjects } =
@@ -21,10 +22,18 @@ function HomePage() {
 
   const projectList = useMemo(() => projects ?? [], [projects]);
   const taskList = useMemo(() => tasks ?? [], [tasks]);
+  const activeTaskList = useMemo(
+    () =>
+      taskList.filter((task) => {
+        const status = (task.status ?? "").toLowerCase();
+        return status !== "completed" && status !== "done";
+      }),
+    [taskList]
+  );
 
   return (
     <div className="flex flex-col justify-start gap-y-6 p-10 sm:p-6 bg-[#f5f5f5] min-h-screen">
-      <ProjectHeader userTasks={taskList} />
+      <ProjectHeader userTasks={taskList} activeTasks={activeTaskList} />
 
       <section aria-labelledby="dashboard-active-projects">
         <div className="flex justify-between items-center">
@@ -85,12 +94,12 @@ function HomePage() {
               {tDashboard("errorLoadingTasks")}
             </div>
           ) : null}
-          {!isLoadingTasks && !isErrorTasks && taskList.length === 0 && (
+          {!isLoadingTasks && !isErrorTasks && activeTaskList.length === 0 && (
             <div className="text-center font-normal text-lg text-secondary-950">
               {tDashboard("noTasks")}
             </div>
           )}
-          {taskList.map((task) => (
+          {activeTaskList.map((task) => (
             <TaskCard key={task.id} task={task} />
           ))}
         </div>
@@ -103,34 +112,43 @@ export default HomePage;
 
 type ProjectHeaderProps = {
   userTasks: Task[];
+  activeTasks: Task[];
 };
 
-const ProjectHeader = ({ userTasks }: ProjectHeaderProps) => {
+const ProjectHeader = ({ userTasks, activeTasks }: ProjectHeaderProps) => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [runningTasksCount, setRunningTasksCount] = useState(0);
   const tDashboard = useTranslations("dashboard");
   const locale = useLocale();
+  const dayPickerLocale = locale === "fa" ? faIR : undefined;
 
-  const target = userTasks.length;
+  const totalTasks = userTasks.length;
+  const activeTasksCount = activeTasks.length;
   const duration = 2000;
 
   useEffect(() => {
-    const activeTasks = userTasks.filter((task) => task.status !== "Completed").length;
-    const increment = activeTasks / (duration / 50);
+    const increment = activeTasksCount / (duration / 50);
     const timer = setInterval(() => {
       setRunningTasksCount((prev) => {
-        if (prev + increment >= target) {
+        if (prev + increment >= activeTasksCount) {
           clearInterval(timer);
-          return target;
+          return activeTasksCount;
         }
         return prev + increment;
       });
     }, 50);
 
     return () => clearInterval(timer);
-  }, [userTasks, target]);
+  }, [activeTasksCount]);
 
-  const completionPercentage = target === 0 ? 0 : Math.floor((runningTasksCount / target) * 100);
+  useEffect(() => {
+    if (activeTasksCount === 0) {
+      setRunningTasksCount(0);
+    }
+  }, [activeTasksCount]);
+
+  const completionPercentage =
+    totalTasks === 0 ? 0 : Math.round(((totalTasks - activeTasksCount) / totalTasks) * 100);
 
   return (
     <div className="grid md:grid-cols-3 sm:grid-cols-1 lg:grid-cols-4 gap-x-4 md:gap-y-6 w-full auto-rows-auto">
@@ -148,8 +166,9 @@ const ProjectHeader = ({ userTasks }: ProjectHeaderProps) => {
             thickness={2}
           />
           <div className="flex flex-col justify-start items-start gap-y-[2px]">
-            <p className="text-white text-lg font-bold">{target}</p>
+            <p className="text-white text-lg font-bold">{totalTasks}</p>
             <p className="text-white text-lg">{tDashboard("tasksLabel")}</p>
+            <p className="text-white text-sm opacity-80">{`${tDashboard("activeTasks")}: ${activeTasksCount}`}</p>
           </div>
         </div>
       </div>
@@ -165,6 +184,7 @@ const ProjectHeader = ({ userTasks }: ProjectHeaderProps) => {
           onSelect={setDate}
           className="rounded-md border col-span-2 bg-white"
           dir={locale === "fa" ? "rtl" : "ltr"}
+          locale={dayPickerLocale}
         />
       </div>
     </div>

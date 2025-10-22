@@ -12,6 +12,8 @@ import { useAppSelector } from "@/app/redux";
 import { Trash } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Avatar } from "@mui/material";
+import { useLocale } from "next-intl";
+import { getLocalizedAvatarPlaceholder } from "@/lib/avatar";
 
 type Props = {
   isOpen: boolean;
@@ -37,6 +39,8 @@ export default function InviteMemberModal({ isOpen, onClose }: Props) {
   const [error, setError] = useState("");
 
   const { data: users, isLoading } = useGetUsersQuery();
+  const locale = useLocale();
+  const placeholderAvatar = getLocalizedAvatarPlaceholder(locale);
   const [selectedUsers, setSelectedUsers] = useState<userOption[]>([]);
   const [addTeamMember, { error: teamMemberError }] =
     useAddTeamMemberMutation();
@@ -182,7 +186,7 @@ export default function InviteMemberModal({ isOpen, onClose }: Props) {
                     <div className="flex items-center gap-x-4">
                     <Avatar
                       key={teamMember.user.userId}
-                      src={teamMember.user.profilePictureUrl ?? undefined}
+                      src={teamMember.user.profilePictureUrl ?? placeholderAvatar}
                       alt={teamMember.user.username}
                       className="w-4 h-4"
                     />

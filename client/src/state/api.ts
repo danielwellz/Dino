@@ -29,6 +29,7 @@
   User,
   WorkflowTemplate,
   OnboardingStageDefinition,
+  ConversationParticipant,
 } from "@/app/types/types";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { logOut, setCredentials } from "./authSlice";
@@ -397,8 +398,9 @@ export const api = createApi({
       invalidatesTags: (result, error, { teamId }) => [
         { type: "AssetTags", id: `LIST-${teamId}` },
       ],
-    }),    getConversationMessages: build.query<
-      { messages: ChatMessage[] },
+    }),
+    getConversationMessages: build.query<
+      { messages: ChatMessage[]; participants: ConversationParticipant[] },
       { conversationId: string }
     >({
       query: ({ conversationId }) => ({
@@ -703,6 +705,28 @@ export const api = createApi({
             ]
           : [{ type: "Messages" as const, id: `LIST-${teamId}` }],
     }),
+    deleteMessage: build.mutation<
+      void,
+      { messageId: string | number; teamId?: string }
+    >({
+      query: ({ messageId }) => ({
+        url: `/api/messages/messages/${messageId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { messageId, teamId }) => {
+        const tags: { type: "Messages"; id: string | number }[] = [];
+        const numericId = Number(messageId);
+        tags.push({
+          type: "Messages",
+          id: Number.isNaN(numericId) ? messageId : numericId,
+        });
+        if (teamId) {
+          tags.push({ type: "Messages", id: `LIST-${teamId}` });
+        }
+        tags.push({ type: "Messages", id: "LIST" });
+        return tags;
+      },
+    }),
     // remove user from task
     removeUserFromTask: build.mutation<
       TaskAssignment,
@@ -787,6 +811,10 @@ export const api = createApi({
         url: "/api/teams",
         method: "GET",
       }),
+      transformResponse: (response: { teams: Team[] } | Team[] | null) => {
+        if (!response) return [];
+        return Array.isArray(response) ? response : (response.teams ?? []);
+      },
       providesTags: (result) =>
         result
           ? [
@@ -806,6 +834,32 @@ export const api = createApi({
         body: { teamId, userId, role },
       }),
       invalidatesTags: ["Teams"],
+    }),
+    leaveTeam: build.mutation<{ message: string }, { teamId: string }>({
+      query: ({ teamId }) => ({
+        url: `/api/teams/${teamId}/leave`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => {
+        const numericId = Number(teamId);
+        return [
+          { type: "Teams" as const, id: "LIST" },
+          { type: "Teams" as const, id: Number.isNaN(numericId) ? teamId : numericId },
+        ];
+      },
+    }),
+    deleteTeam: build.mutation<{ message: string }, { teamId: string }>({
+      query: ({ teamId }) => ({
+        url: `/api/teams/${teamId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => {
+        const numericId = Number(teamId);
+        return [
+          { type: "Teams" as const, id: "LIST" },
+          { type: "Teams" as const, id: Number.isNaN(numericId) ? teamId : numericId },
+        ];
+      },
     }),
     // signup user
     signUpUser: build.mutation<
@@ -896,7 +950,7 @@ export const api = createApi({
     // Get tasks for a project
     getProjectTasks: build.query<Task[], { projectId: string }>({
       query: ({ projectId }) => ({
-        url: `/api/tasks/${projectId}`,
+        url: `/api/tasks/${projectId.toString()}`,
         method: "GET",
       }),
       providesTags: (result, error, { projectId }) =>
@@ -915,20 +969,77 @@ export const api = createApi({
         method: "POST",
         body: task,
       }),
-      invalidatesTags: (result, error, { projectId }) => [
-        { type: "Tasks" as const, id: `LIST-${projectId}` },
-        ...(result ? [{ type: "Tasks" as const, id: result.id }] : []),
+      async onQueryStarted(task, { dispatch, queryFulfilled }) {
+        // Create an optimistic task
+        const optimisticTask = {
+          id: Date.now(), // Temporary ID
+          ...task,
+          status: task.status ?? "TODO",
+          createdAt: new Date().toISOString(),
+        } as Task;
+
+        // Ensure projectId is converted to string for cache key
+        const projectIdString = task.projectId?.toString() ?? "";
+
+        // Add optimistic task to cache
+        const patchResult = dispatch(
+          api.util.updateQueryData("getProjectTasks", { projectId: projectIdString }, (draft) => {
+            draft.push(optimisticTask);
+          })
+        );
+
+        try {
+          const { data: created } = await queryFulfilled;
+          // Replace optimistic task with real task data
+          dispatch(
+            api.util.updateQueryData("getProjectTasks", { projectId: projectIdString }, (draft) => {
+              const index = draft.findIndex(t => t.id === optimisticTask.id);
+              if (index !== -1) {
+                draft[index] = created;
+              }
+            })
+          );
+        } catch {
+          // Rollback on error
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (result, error, task) => [
+        { type: "Tasks", id: "LIST" },
+        { type: "Tasks", id: `LIST-${task.projectId}` },
       ],
     }),
     // Update task status for a project
-    updateTaskStatus: build.mutation<Task, { taskId: string; status: string }>({
+    updateTaskStatus: build.mutation<Task, { taskId: string; status: string; projectId: string }>({
       query: ({ taskId, status }) => ({
         url: `/api/tasks/${taskId}/status`,
         method: "PATCH",
         body: { status },
       }),
-      invalidatesTags: (result, error, { taskId }) => [
+      async onQueryStarted({ taskId, status, projectId }, { dispatch, queryFulfilled }) {
+        // Ensure projectId is string for cache key
+        const projectIdString = projectId?.toString() ?? "";
+        
+        // Optimistically update the task status
+        const patchResult = dispatch(
+          api.util.updateQueryData("getProjectTasks", { projectId: projectIdString }, (draft) => {
+            const task = draft.find(t => t.id === parseInt(taskId));
+            if (task) {
+              task.status = status;
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Rollback on error
+          patchResult.undo();
+        }
+      },
+      invalidatesTags: (result, error, { taskId, projectId }) => [
         { type: "Tasks", id: taskId },
+        { type: "Tasks", id: `LIST-${projectId}` },
       ],
     }),
     // Delete a task
@@ -938,9 +1049,16 @@ export const api = createApi({
         method: "DELETE",
         body: { projectId },
       }),
-      invalidatesTags: (result, error, { projectId }) => [
-        { type: "Tasks", id: `LIST-${projectId}` },
-      ],
+      invalidatesTags: (result, error, { taskId, projectId }) => {
+        const tags: { type: "Tasks"; id: string }[] = [
+          { type: "Tasks", id: "LIST" },
+        ];
+        if (projectId) {
+          tags.push({ type: "Tasks", id: `LIST-${projectId}` });
+        }
+        tags.push({ type: "Tasks", id: taskId });
+        return tags;
+      },
     }),
     // Get project tasks dependencies
     getProjectDependencies: build.query<
@@ -988,11 +1106,13 @@ export const api = createApi({
     method: "POST",
     body: { projectId,newStartDate, newDueDate },
   }),
-  // invalidate both the project list and this specific task
-  invalidatesTags: (result, error, { projectId, taskId }) => [
-    { type: "Tasks", id: `LIST-${projectId}` },
-    { type: "Tasks", id: taskId },
-  ],}),
+    // invalidate both the project list and this specific task
+    invalidatesTags: (result, error, { projectId, taskId }) => [
+      { type: "Tasks", id: "LIST" },
+      { type: "Tasks", id: `LIST-${projectId}` },
+      { type: "Tasks", id: taskId },
+    ],
+  }),
 
   // add task dependency
   addTaskDependency: build.mutation<TaskDependency, { taskId: string; source: string; target: string }>({
@@ -1016,9 +1136,12 @@ export const {
   useAddCommentToTaskMutation,
   useRescheduleTaskMutation,
   useGetTeamMessagesQuery,
+  useDeleteMessageMutation,
   useGetTaskAssigneesQuery,
   useAssignUserToTaskMutation,
   useRemoveUserFromTaskMutation,
+  useLeaveTeamMutation,
+  useDeleteTeamMutation,
   useGetProjectTeamMembersQuery,
   useUpdateTeamMemberRoleMutation,
   useRemoveTeamMemberMutation,

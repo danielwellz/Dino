@@ -418,7 +418,7 @@ model Asset {
   fileURL       String
   previewURL    String?
   mimeType      String?
-  size          Int?
+  size          Int?             @map("sizeBytes")
   folderId      Int?
   projectId     Int?
   uploadedById  Int

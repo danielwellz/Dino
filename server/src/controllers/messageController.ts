@@ -5,6 +5,7 @@ import {
   MessageStatus,
   Prisma,
   PrismaClient,
+  TeamMemberRole,
 } from "@prisma/client";
 import { verifyAccessToken } from "../utils/jwt";
 
@@ -506,5 +507,79 @@ export const getTeamMessages = async (req: Request, res: Response) => {
     conversationId: conversation.id,
     messages: messages.map(mapMessage),
   });
+};
+
+export const deleteMessage = async (req: Request, res: Response) => {
+  const userId = extractAuthUser(req);
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  const messageId = Number(req.params.messageId);
+  if (Number.isNaN(messageId)) {
+    res.status(400).json({ message: "Invalid message id" });
+    return;
+  }
+
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    include: {
+      conversation: {
+        include: {
+          participants: {
+            where: { userId },
+          },
+        },
+      },
+      team: {
+        include: {
+          members: {
+            where: { userId },
+          },
+        },
+      },
+    },
+  });
+
+  if (!message) {
+    res.status(404).json({ message: "Message not found" });
+    return;
+  }
+
+  const isSender = message.userId === userId;
+  const teamMembership = message.teamId
+    ? await prisma.teamMember.findFirst({
+        where: { teamId: message.teamId, userId },
+      })
+    : null;
+
+  const conversationParticipant = message.conversationId
+    ? await prisma.conversationParticipant.findFirst({
+        where: { conversationId: message.conversationId, userId },
+      })
+    : null;
+
+  const isTeamManager =
+    teamMembership &&
+    (teamMembership.role === TeamMemberRole.OWNER ||
+      teamMembership.role === TeamMemberRole.ADMIN);
+
+  const isConversationManager =
+    conversationParticipant?.role === ConversationRole.OWNER ||
+    conversationParticipant?.role === ConversationRole.ADMIN;
+
+  if (!isSender && !isTeamManager && !isConversationManager) {
+    res.status(403).json({ message: "Forbidden" });
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.messageReceipt.deleteMany({ where: { messageId } });
+    await tx.messageAttachment.deleteMany({ where: { messageId } });
+    await tx.message.delete({ where: { id: messageId } });
+  });
+
+  res.status(204).send();
 };
 

@@ -219,6 +219,7 @@ export interface Task {
   dueDate?: ISODateString | null;
   points?: number | null;
   projectId: number;
+  project?: Pick<Project, "id" | "name">;
   authorUserId: number;
   assignedUserId?: number | null;
   createdAt: ISODateString;

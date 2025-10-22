@@ -11,6 +11,8 @@ const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const http_1 = __importDefault(require("http"));
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const socket_io_1 = require("socket.io");
 const messageSocket_1 = require("./sockets/messageSocket");
 /* ROUTE IMPORTS */
@@ -24,6 +26,7 @@ const messageRouter_1 = __importDefault(require("./routes/messageRouter"));
 const assetRoutes_1 = __importDefault(require("./routes/assetRoutes"));
 const creativeRoutes_1 = __importDefault(require("./routes/creativeRoutes"));
 const swagger_1 = require("./swagger");
+const uploadRoutes_1 = __importDefault(require("./routes/uploadRoutes"));
 /* CONFIGURATIONS */
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -49,6 +52,11 @@ const io = new socket_io_1.Server(server, {
 (0, messageSocket_1.initMessageSocket)(io);
 /* COOKIES */
 app.use((0, cookie_parser_1.default)());
+const uploadsDir = path_1.default.join(__dirname, "..", "uploads");
+if (!fs_1.default.existsSync(uploadsDir)) {
+    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use("/uploads", express_1.default.static(uploadsDir));
 /* ROUTES */
 app.get("/", (req, res) => {
     res.send("This is test route");
@@ -63,6 +71,7 @@ app.use("/api/teams", teamRoutes_1.default);
 app.use("/api/messages", messageRouter_1.default);
 app.use("/api/assets", assetRoutes_1.default);
 app.use("/api/creative", creativeRoutes_1.default);
+app.use("/api/uploads", uploadRoutes_1.default);
 /* SERVER */
 const port = Number(process.env.PORT) || 8000;
 // Swagger docs route

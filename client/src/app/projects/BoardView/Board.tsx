@@ -29,8 +29,9 @@ const taskStatus = ["To Do", "In Progress", "Under Review", "Completed"];
 export default function Board({ id, setIsNewTaskModalOpen ,tasks}: Props) {
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   
-  const moveTask = (taskId: string, status: TaskStatus) => {
-    updateTaskStatus({ taskId, status });
+  const moveTask = (taskId: string, status: TaskStatus, taskProjectId?: string | number) => {
+    const projectId = taskProjectId ?? id;
+    updateTaskStatus({ taskId, status, projectId: String(projectId) });
   };
 
 
@@ -53,7 +54,7 @@ export default function Board({ id, setIsNewTaskModalOpen ,tasks}: Props) {
 type TaskColumnProps = {
   status: TaskStatus;
   tasks: Task[];
-  moveTask: (taskId: string, status: TaskStatus) => void;
+  moveTask: (taskId: string, status: TaskStatus, projectId?: string | number) => void;
   setIsNewTaskModalOpen: (isOpen: boolean) => void;
 };
 const TaskColumn = ({
@@ -64,7 +65,8 @@ const TaskColumn = ({
 }: TaskColumnProps) => {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "task",
-    drop: (item: { id: string }) => moveTask(item.id, status),
+    drop: (item: { id: string; projectId?: string | number }) =>
+      moveTask(item.id, status, item.projectId),
     collect: (monitor: DropTargetMonitor) => ({
       isOver: !!monitor.isOver(),
     }),

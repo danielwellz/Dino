@@ -5,7 +5,8 @@ import Select from "react-select";
 import { useState } from "react";
 import { useAppSelector } from "@/app/redux";
 import { useAssignUserToTaskMutation, useGetUsersQuery } from "@/state/api";
-import { Task } from "@/app/types/types";
+import { useLocale } from "next-intl";
+import { getLocalizedAvatarPlaceholder } from "@/lib/avatar";
 
 
 interface selectedUserOptionValue {
@@ -22,12 +23,12 @@ type ApiError = {
 
 export const TaskAssignmentSection = () => {
   const { data: users } = useGetUsersQuery();
-  const [selectedUsers, setSelectedUsers] = useState<selectedUserOptionValue[]>(
-    []
-  );
+  const [selectedUsers, setSelectedUsers] = useState<selectedUserOptionValue[]>([]);
   const [assignTaskToUser, { isSuccess }] = useAssignUserToTaskMutation();
   const [error, setError] = useState("");
   const task = useAppSelector((state) => state.global.task);
+  const locale = useLocale();
+  const placeholderAvatar = getLocalizedAvatarPlaceholder(locale);
   const handleAssignUsers = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (selectedUsers.length === 0) return;
@@ -58,7 +59,7 @@ export const TaskAssignmentSection = () => {
               <div className="relative" key={assign.userId}>
                 <Avatar
                   alt={assign.user.username}
-                  src={"https://avatar.iran.liara.run/public"}
+                  src={assign.user.profilePictureUrl ?? placeholderAvatar}
                 />
                 <X
                   className="absolute text-secondary-950 top-0 right-0 cursor-pointer"
